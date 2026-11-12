@@ -4,17 +4,25 @@
 - `CLAUDE.md` — agent rules and commands
 - `docs/SPEC.md` — decisions on top of START_PROMPT
 - `docs/PLAN.md` — task list and status
-- `app/` — Next.js App Router: `layout.tsx`, `globals.css`
-- `app/(map)/page.tsx` — placeholder home page (until task 6)
-- `lib/utils.ts` — `cn()`
-- `lib/types.ts` — shared types (minimal; extended in task 2)
+- `app/layout.tsx` — root layout: Inter, `Providers`, `Splash`, metadata
+- `app/globals.css` — §7 tokens (light/dark), `panel-box`, `.skeleton-shimmer`, `<details>` animation, view-transition and splash CSS
+- `app/(map)/page.tsx` — placeholder home page with `ThemeToggle` (until task 6)
+- `components/providers.tsx` — next-themes, `MotionConfig reducedMotion="user"`, sonner `Toaster`
+- `components/ThemeToggle.tsx` — round sun/moon button; `theme:switch` event + `waits`, circular View Transition reveal; exports `ThemeSwitchDetail`
+- `components/Splash.tsx` — §5.10 splash (CSS bar, finishes on `map:ready`, 700 ms–6 s; hidden on /bill, /changes, /report, /me)
+- `components/PageLoading.tsx` — `PageLoading` (title + delayed shimmer cards) and `PanelSkeleton`
+- `components/ui/` — shadcn (radix-ui) with §7 tweaks: accordion, badge, button, card, dialog, input, popover, skeleton, sonner, textarea
+- `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е)
+- `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`
+- `lib/db.ts` — `prisma` PrismaClient singleton
 - `lib/ai/schemas.ts` — zod AI schemas (minimal `DocSummary`; extended in task 8)
 - `lib/fixtures/` — demo bills and city-work documents (prepared, unchanged)
 - `data/` — prepared OSM and seed JSON (unchanged)
 - `public/geo/` — districts GeoJSON and complexes (unchanged)
 - `public/demo/` — demo images (unchanged)
 - `scripts/` — OSM fetch scripts (unchanged)
-- `prisma/schema.prisma` — Prisma schema (sqlite, no models yet)
+- `prisma/schema.prisma` — Prisma schema §3.2 (sqlite)
+- `prisma/seed.ts` — deterministic seed §3.3 (salted mulberry32, turf point-in-polygon; houses near microdistricts and on city-work streets; issue ids `iss-NNN`)
 - `components.json` — shadcn config
 - `eslint.config.mjs`, `postcss.config.mjs`, `next.config.ts`, `tsconfig.json` — tooling config
 - `.env.example` — env keys (§8)

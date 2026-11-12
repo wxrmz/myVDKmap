@@ -6,3 +6,172 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+model District {
+  id             String          @id
+  name           String
+  population     Int
+  populationYear Int
+  color          String
+  microdistricts Microdistrict[]
+}
+
+model Microdistrict {
+  id         String     @id
+  name       String
+  districtId String
+  lat        Float
+  lng        Float
+  district   District   @relation(fields: [districtId], references: [id])
+  complexes  Complex[]
+  buildings  Building[]
+
+  @@index([districtId])
+}
+
+model Complex {
+  id              String        @id
+  name            String
+  developer       String?
+  street          String?
+  status          String
+  floors          String?
+  note            String?
+  microdistrictId String
+  lat             Float
+  lng             Float
+  microdistrict   Microdistrict @relation(fields: [microdistrictId], references: [id])
+  buildings       Building[]
+
+  @@index([microdistrictId])
+}
+
+model ManagementCompany {
+  id              String     @id
+  name            String
+  rating          Float
+  avgResponseDays Float
+  isDemo          Boolean    @default(true)
+  buildings       Building[]
+}
+
+model Building {
+  id                  String             @id
+  address             String
+  lat                 Float
+  lng                 Float
+  floors              Int?
+  yearBuilt           Int?
+  wallMaterial        String?
+  apartments          Int?
+  complexId           String?
+  microdistrictId     String
+  managementCompanyId String?
+  lastCapRepairYear   Int?
+  nextCapRepair       Int?
+  isDemo              Boolean            @default(true)
+  complex             Complex?           @relation(fields: [complexId], references: [id])
+  microdistrict       Microdistrict      @relation(fields: [microdistrictId], references: [id])
+  managementCompany   ManagementCompany? @relation(fields: [managementCompanyId], references: [id])
+  issues              Issue[]
+  bills               Bill[]
+  workImpacts         CityWorkImpact[]
+
+  @@index([microdistrictId])
+  @@index([complexId])
+  @@index([managementCompanyId])
+}
+
+model Issue {
+  id          String    @id @default(cuid())
+  buildingId  String?
+  lat         Float
+  lng         Float
+  category    String
+  title       String
+  description String
+  photoUrl    String?
+  authorityId String
+  appealText  String
+  status      String    @default("new")
+  severity    Int       @default(2)
+  supports    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  building    Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  authority   Authority @relation(fields: [authorityId], references: [id])
+
+  @@index([buildingId])
+  @@index([createdAt])
+}
+
+model Authority {
+  id      String  @id
+  name    String
+  handles String
+  contact String?
+  issues  Issue[]
+}
+
+model Bill {
+  id         String   @id
+  buildingId String
+  period     String
+  items      String
+  total      Float
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@index([buildingId])
+}
+
+model CityWork {
+  id           String           @id
+  title        String
+  sourceText   String
+  plainSummary String
+  kind         String
+  startDate    DateTime
+  endDate      DateTime?
+  lat          Float?
+  lng          Float?
+  impacts      CityWorkImpact[]
+}
+
+model CityWorkImpact {
+  workId     String
+  buildingId String
+  work       CityWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@id([workId, buildingId])
+  @@index([buildingId])
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String?      @unique
+  passwordHash String?
+  name         String
+  phone        String?
+  esiaId       String?      @unique
+  verified     Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  sessions     Session[]
+  cabinet      CabinetData?
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CabinetData {
+  userId    String   @id
+  json      String
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
