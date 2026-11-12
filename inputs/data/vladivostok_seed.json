@@ -1,0 +1,488 @@
+{
+  "_meta": {
+    "version": "final",
+    "updated": "2026-11-09",
+    "note": "Реальное: 5 районов, население, микрорайоны, ЖК (названия, застройщики, улицы). Координаты микрорайонов приблизительные — для карты, не для навигации. Всё, чего нет в этом файле (дома, УК, жалобы, квитанции, документы), — демо-данные, генерируются сидом и помечаются isDemo."
+  },
+  "city": {
+    "name": "Владивосток",
+    "center": [
+      43.1155,
+      131.8855
+    ],
+    "zoom": 11,
+    "population": 600871,
+    "population_year": 2021,
+    "population_label": "около 600 тыс. жителей"
+  },
+  "districts": [
+    {
+      "id": "leninsky",
+      "name": "Ленинский",
+      "osm_name": "Ленинский район",
+      "population": 151100,
+      "population_year": 2024,
+      "color": "#2563EB",
+      "tagline": "Нейбута, 64–71 микрорайоны, Зелёный угол",
+      "microdistricts": [
+        {
+          "id": "neybuta",
+          "name": "Нейбута (64–71 мкр)",
+          "center": [
+            43.108,
+            131.961
+          ],
+          "center_source": "остановка «Нейбута» / квартал Нейбута"
+        },
+        {
+          "id": "zeleny-ugol",
+          "name": "Зелёный угол",
+          "center": [
+            43.1186,
+            131.9679
+          ],
+          "center_source": "дома «Зелёный угол»"
+        },
+        {
+          "id": "balyaeva",
+          "name": "Баляева",
+          "center": [
+            43.128,
+            131.94
+          ],
+          "center_source": "остановка «Баляева»"
+        }
+      ]
+    },
+    {
+      "id": "frunzensky",
+      "name": "Фрунзенский",
+      "osm_name": "Фрунзенский район",
+      "population": 56549,
+      "population_year": 2024,
+      "color": "#0D9488",
+      "tagline": "Исторический центр, Эгершельд, остров Русский",
+      "microdistricts": [
+        {
+          "id": "center",
+          "name": "Центр",
+          "center": [
+            43.1156,
+            131.8855
+          ],
+          "center_source": "OSM place=suburb «Центр»"
+        },
+        {
+          "id": "egersheld",
+          "name": "Эгершельд",
+          "center": [
+            43.0953,
+            131.8627
+          ],
+          "center_source": "OSM place=suburb «Эгершельд»"
+        },
+        {
+          "id": "russky",
+          "name": "Остров Русский (ДВФУ)",
+          "center": [
+            43.0135,
+            131.8437
+          ],
+          "center_source": "OSM place=village «Русский»"
+        }
+      ]
+    },
+    {
+      "id": "pervomaysky",
+      "name": "Первомайский",
+      "osm_name": "Первомайский район",
+      "population": 155651,
+      "population_year": 2021,
+      "color": "#7C3AED",
+      "tagline": "Чуркин, Патрокл, Тихая, Луговая",
+      "microdistricts": [
+        {
+          "id": "churkin",
+          "name": "Чуркин",
+          "center": [
+            43.095,
+            131.92
+          ]
+        },
+        {
+          "id": "patrokl",
+          "name": "Патрокл",
+          "center": [
+            43.077,
+            131.962
+          ],
+          "center_source": "остановка и ТЦ «Патрокл»"
+        },
+        {
+          "id": "tikhaya",
+          "name": "Тихая",
+          "center": [
+            43.0915,
+            131.9715
+          ],
+          "center_source": "остановка «Бухта Тихая»"
+        },
+        {
+          "id": "lugovaya",
+          "name": "Луговая",
+          "center": [
+            43.1117,
+            131.9388
+          ],
+          "center_source": "платформа «Луговая»"
+        },
+        {
+          "id": "borisenko",
+          "name": "Борисенко",
+          "center": [
+            43.098,
+            131.9537
+          ],
+          "center_source": "остановка и платформа «Борисенко»"
+        }
+      ]
+    },
+    {
+      "id": "pervorechensky",
+      "name": "Первореченский",
+      "osm_name": "Первореченский район",
+      "population": 141716,
+      "population_year": 2021,
+      "color": "#EA580C",
+      "tagline": "Первая и Вторая Речка, Столетие",
+      "microdistricts": [
+        {
+          "id": "pervaya-rechka",
+          "name": "Первая Речка",
+          "center": [
+            43.1371,
+            131.9027
+          ],
+          "center_source": "станция «Первая Речка»"
+        },
+        {
+          "id": "vtoraya-rechka",
+          "name": "Вторая Речка",
+          "center": [
+            43.1641,
+            131.9044
+          ],
+          "center_source": "станция «Вторая Речка»"
+        },
+        {
+          "id": "stoletie",
+          "name": "Столетие (пр. 100-летия)",
+          "center": [
+            43.155,
+            131.91
+          ]
+        },
+        {
+          "id": "dneprovskaya",
+          "name": "Днепровская",
+          "center": [
+            43.1477,
+            131.9325
+          ],
+          "center_source": "ул. Днепровская"
+        }
+      ]
+    },
+    {
+      "id": "sovetsky",
+      "name": "Советский",
+      "osm_name": "Советский район",
+      "population": 90967,
+      "population_year": 2024,
+      "color": "#DB2777",
+      "tagline": "Снеговая Падь, Седанка, Садгород, Трудовое",
+      "microdistricts": [
+        {
+          "id": "snegovaya-pad",
+          "name": "Снеговая Падь",
+          "center": [
+            43.1634,
+            131.957
+          ],
+          "center_source": "OSM landuse «Снеговая падь»"
+        },
+        {
+          "id": "russkaya",
+          "name": "Улица Русская",
+          "center": [
+            43.1678,
+            131.9154
+          ],
+          "center_source": "ул. Русская"
+        },
+        {
+          "id": "sedanka",
+          "name": "Седанка",
+          "center": [
+            43.2132,
+            131.9567
+          ],
+          "center_source": "OSM place=suburb «Седанка»"
+        },
+        {
+          "id": "sadgorod",
+          "name": "Садгород",
+          "center": [
+            43.2628,
+            132.0408
+          ],
+          "center_source": "платформа «Садгород»"
+        },
+        {
+          "id": "trudovoe",
+          "name": "Посёлок Трудовое",
+          "center": [
+            43.2986,
+            132.0621
+          ],
+          "center_source": "OSM place=town «Трудовое»"
+        }
+      ]
+    }
+  ],
+  "residential_complexes": [
+    {
+      "id": "snezhny-park",
+      "name": "Снежный парк",
+      "developer": "ПИК",
+      "street": "ул. Полковника Фесюна",
+      "microdistrict": "snegovaya-pad",
+      "status": "строится",
+      "floors": "10–29"
+    },
+    {
+      "id": "flagman",
+      "name": "Флагман",
+      "developer": "ГК ФСК",
+      "street": "ул. Адмирала Горшкова",
+      "microdistrict": "snegovaya-pad",
+      "status": "строится, есть сданные корпуса",
+      "note": "7 корпусов"
+    },
+    {
+      "id": "lider",
+      "name": "Лидер",
+      "developer": null,
+      "street": null,
+      "microdistrict": "snegovaya-pad",
+      "status": "сдан"
+    },
+    {
+      "id": "izumrudny",
+      "name": "Изумрудный",
+      "developer": null,
+      "street": "ул. Русская, 73б",
+      "microdistrict": "russkaya",
+      "status": "сдан",
+      "floors": "24",
+      "note": "9 домов, 2 детсада, школа"
+    },
+    {
+      "id": "zametny",
+      "name": "Заметный",
+      "developer": "СЗ Трудовое 1",
+      "street": "ул. 50 лет Октября",
+      "microdistrict": "trudovoe",
+      "status": "строится"
+    },
+    {
+      "id": "fregat",
+      "name": "Фрегат",
+      "developer": "ГК Эту-Девелопмент",
+      "street": "ул. Нейбута",
+      "microdistrict": "neybuta",
+      "status": "сдан"
+    },
+    {
+      "id": "fregat-2",
+      "name": "Фрегат-2",
+      "developer": "ГК Эту-Девелопмент",
+      "street": "ул. Нейбута",
+      "microdistrict": "neybuta",
+      "status": "сдан",
+      "floors": "25",
+      "note": "9 домов"
+    },
+    {
+      "id": "greenhills",
+      "name": "Гринхилс",
+      "developer": null,
+      "street": "ул. Нейбута",
+      "microdistrict": "zeleny-ugol",
+      "status": "строится",
+      "note": "двор без машин"
+    },
+    {
+      "id": "amursky",
+      "name": "Амурский",
+      "developer": "ГК «Патрокл»",
+      "street": "ул. Леонова",
+      "microdistrict": "egersheld",
+      "status": "4 корпуса сданы, 1 строится",
+      "class": "бизнес"
+    },
+    {
+      "id": "kaskad",
+      "name": "Каскад",
+      "developer": null,
+      "street": null,
+      "microdistrict": "orlinaya",
+      "status": "сдан"
+    },
+    {
+      "id": "ogni-patrokla",
+      "name": "Огни Патрокла",
+      "developer": "GloraX",
+      "street": "ул. Катерная",
+      "microdistrict": "patrokl",
+      "status": "строится"
+    },
+    {
+      "id": "milya",
+      "name": "Миля",
+      "developer": null,
+      "street": "ул. Сочинская, 17",
+      "microdistrict": "patrokl",
+      "status": "сдан (2024)",
+      "floors": "17"
+    },
+    {
+      "id": "dom-na-vostoke",
+      "name": "ДОМ на Востоке",
+      "developer": "ДОМ.РФ Девелопмент",
+      "street": null,
+      "microdistrict": "patrokl",
+      "status": "строится"
+    },
+    {
+      "id": "bosforsky-park",
+      "name": "Босфорский парк",
+      "developer": "ПИК",
+      "street": "ул. Архангельская",
+      "microdistrict": "churkin",
+      "status": "строится, есть сданные корпуса",
+      "note": "19 корпусов"
+    },
+    {
+      "id": "borisenko-48",
+      "name": "Борисенко 48",
+      "developer": null,
+      "street": "ул. Борисенко, 48",
+      "microdistrict": "borisenko",
+      "status": "строится"
+    },
+    {
+      "id": "tikhvinsky",
+      "name": "Тихвинский",
+      "developer": null,
+      "street": "ул. Новожилова",
+      "microdistrict": "lugovaya",
+      "status": "строится",
+      "class": "комфорт+"
+    },
+    {
+      "id": "dneprovsky",
+      "name": "Днепровский",
+      "developer": "СЗ «ТЕМЕЛ»",
+      "street": "ул. Днепровская",
+      "microdistrict": "dneprovskaya",
+      "status": "строится"
+    },
+    {
+      "id": "legenda",
+      "name": "Легенда",
+      "developer": null,
+      "street": "ул. Гамарника, 18б",
+      "microdistrict": "stoletie",
+      "status": "строится"
+    },
+    {
+      "id": "zaliv",
+      "name": "Залив",
+      "developer": null,
+      "street": "пр. 100-летия Владивостока, 165",
+      "microdistrict": "stoletie",
+      "status": "сдан",
+      "floors": "22"
+    },
+    {
+      "id": "vidny",
+      "name": "Видный",
+      "developer": null,
+      "street": "ул. Карбышева, 22Б",
+      "microdistrict": "vtoraya-rechka",
+      "status": "сдан (2024)",
+      "floors": "24"
+    }
+  ],
+  "authorities": [
+    {
+      "id": "uk",
+      "name": "Управляющая компания дома",
+      "handles": [
+        "подъезд",
+        "свет в подъезде",
+        "лифт",
+        "крыша",
+        "подвал",
+        "уборка двора",
+        "мусор у дома",
+        "граффити на доме"
+      ]
+    },
+    {
+      "id": "city_admin",
+      "name": "Администрация г. Владивостока (управление района)",
+      "handles": [
+        "ямы на городских дорогах",
+        "уличное освещение",
+        "благоустройство общественных пространств",
+        "граффити на муниципальных объектах",
+        "ливнёвки и подтопления"
+      ]
+    },
+    {
+      "id": "gzhi",
+      "name": "Государственная жилищная инспекция Приморского края",
+      "handles": [
+        "бездействие УК",
+        "неправильные начисления",
+        "нарушения содержания дома"
+      ]
+    },
+    {
+      "id": "capremont",
+      "name": "Фонд капитального ремонта МКД Приморского края",
+      "handles": [
+        "капремонт",
+        "взносы на капремонт"
+      ]
+    },
+    {
+      "id": "rpn",
+      "name": "Роспотребнадзор по Приморскому краю",
+      "handles": [
+        "качество воды",
+        "шум",
+        "санитарные нарушения"
+      ]
+    },
+    {
+      "id": "pos",
+      "name": "Госуслуги «Решаем вместе» (ПОС)",
+      "handles": [
+        "универсальный канал подачи обращения"
+      ]
+    }
+  ]
+}
