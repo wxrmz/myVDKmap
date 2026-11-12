@@ -1,2 +1,163 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --radius: 0.75rem;
+  --background: #f6f6f7;
+  --foreground: #111113;
+  --card: #ffffff;
+  --card-foreground: #111113;
+  --popover: #ffffff;
+  --popover-foreground: #111113;
+  --primary: #111113;
+  --primary-foreground: #ffffff;
+  --secondary: #ebebee;
+  --secondary-foreground: #111113;
+  --muted: #ebebee;
+  --muted-foreground: #63636b;
+  --accent: #e8e8ec;
+  --accent-foreground: #111113;
+  --border: #d6d6db;
+  --input: #c6c6cd;
+  --ring: #71717a;
+  --destructive: #dc3d32;
+  --coral: #e5533d;
+  --turquoise: #16a37a;
+  --work: #d4a017;
+  color-scheme: light;
+  interpolate-size: allow-keywords;
+}
+
+.dark {
+  --background: #0b0b0c;
+  --foreground: #ededef;
+  --card: #151518;
+  --card-foreground: #ededef;
+  --popover: #1b1b1e;
+  --popover-foreground: #ededef;
+  --primary: #ededef;
+  --primary-foreground: #151518;
+  --secondary: #232327;
+  --secondary-foreground: #ededef;
+  --muted: #232327;
+  --muted-foreground: #9d9da6;
+  --accent: #28282d;
+  --accent-foreground: #ededef;
+  --border: #34343b;
+  --input: #43434b;
+  --ring: #7a7a84;
+  --coral: #f06b52;
+  --turquoise: #3ccf9f;
+  --work: #e8b830;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-coral: var(--coral);
+  --color-turquoise: var(--turquoise);
+  --color-work: var(--work);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-base leading-relaxed text-foreground antialiased;
+  }
+}
+
+@utility panel-box {
+  border-radius: 1rem;
+  background-color: var(--card);
+  box-shadow: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 0.05);
+  padding: 1rem;
+}
+
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--muted) 0%,
+    color-mix(in oklab, var(--muted), var(--card) 70%) 50%,
+    var(--muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Smooth <details>: browsers without ::details-content just snap open. */
+details::details-content {
+  block-size: 0;
+  overflow-y: clip;
+  transition:
+    block-size 220ms ease,
+    content-visibility 220ms allow-discrete;
+}
+details[open]::details-content {
+  block-size: auto;
+}
+
+/* Theme switch: circular reveal is driven from ThemeToggle via WAAPI. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Splash (§5.10): CSS so it animates before JS loads. */
+.splash-fill {
+  transform-origin: left;
+  animation: splash-fill 4s cubic-bezier(0.1, 0.75, 0.3, 1) forwards;
+}
+
+@keyframes splash-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+  }
+  details::details-content {
+    transition: none;
+  }
+}
