@@ -13,8 +13,17 @@
 - `components/PageLoading.tsx` — `PageLoading` (title + delayed shimmer cards) and `PanelSkeleton`
 - `components/ui/` — shadcn (radix-ui) with §7 tweaks: accordion, badge, button, card, dialog, input, popover, skeleton, sonner, textarea
 - `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е)
-- `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`
+- `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`, `SearchResult`, `HealthDTO`
 - `lib/db.ts` — `prisma` PrismaClient singleton
+- `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `streetPattern`, `getWorkStreets` (§6.4)
+- `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
+- `lib/nav.ts` — hrefs (`districtHref`, `complexHref`, `houseHref`, `issueHref`, `workHref`), `complexLabel`, `breadcrumbs`
+- `lib/health.ts` — `computeHealth` (§6.5) with Russian plurals
+- `lib/streets.test.ts`, `lib/health.test.ts` — self-checks (`npx tsx <file>`)
+- `lib/ai/http.ts` — `apiError`, `parseBody` (8 MB limit, JSON, zod with Russian messages), `serverError`
+- `app/api/search/route.ts` — `GET /api/search?q=`
+- `app/api/issues/route.ts` — `GET /api/issues[?building=]`, `POST /api/issues` (zod, authority and house checks, `osm-…` houses created lazily)
+- `app/api/issues/[id]/support/route.ts` — `POST` «Меня тоже касается» → `{ supports }`
 - `lib/ai/schemas.ts` — zod AI schemas (minimal `DocSummary`; extended in task 8)
 - `lib/fixtures/` — demo bills and city-work documents (prepared, unchanged)
 - `data/` — prepared OSM and seed JSON (unchanged)

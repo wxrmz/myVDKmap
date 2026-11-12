@@ -162,3 +162,52 @@ export interface CityWorkDTO {
   lng: number | null;
   buildings: Pick<BuildingDTO, "id" | "address">[];
 }
+
+export interface SearchResult {
+  type: "district" | "complex" | "building";
+  id: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  districtId?: string;
+}
+
+export interface HealthDTO {
+  score: number;
+  level: "good" | "warn" | "bad";
+  label: "Всё хорошо" | "Есть проблемы" | "Нужно внимание";
+  parts: string[];
+}
+
+export interface DistrictWithCountsDTO extends DistrictDTO {
+  openIssues: number;
+}
+
+export interface DistrictDetailDTO extends DistrictWithCountsDTO {
+  microdistricts: (MicrodistrictDTO & { complexes: ComplexDTO[] })[];
+  complexCount: number;
+  buildingCount: number;
+}
+
+export interface ComplexDetailDTO extends ComplexDTO {
+  district: Pick<DistrictDTO, "id" | "name" | "color">;
+  microdistrict: Pick<MicrodistrictDTO, "id" | "name">;
+  buildings: (BuildingDTO & { openIssues: number })[];
+  openIssues: number;
+}
+
+export interface BuildingPassportDTO {
+  building: BuildingDTO;
+  openIssues: IssueDTO[];
+  resolvedIssues: IssueDTO[];
+  bills: BillDTO[];
+  /** Works that list this house (`affectsBuilding`) or whose point is within ~600 m. */
+  works: (CityWorkDTO & { affectsBuilding: boolean })[];
+  health: HealthDTO;
+}
+
+export interface DistrictStatsDTO {
+  openIssues: number;
+  totalIssues: number;
+  topCategories: { category: IssueCategory; count: number }[];
+}
