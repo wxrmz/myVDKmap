@@ -4,4 +4,18 @@
 - `CLAUDE.md` — agent rules and commands
 - `docs/SPEC.md` — decisions on top of START_PROMPT
 - `docs/PLAN.md` — task list and status
-- `inputs/` — prepared data before transfer (removed by task 1)
+- `app/` — Next.js App Router: `layout.tsx`, `globals.css`
+- `app/(map)/page.tsx` — placeholder home page (until task 6)
+- `lib/utils.ts` — `cn()`
+- `lib/types.ts` — shared types (minimal; extended in task 2)
+- `lib/ai/schemas.ts` — zod AI schemas (minimal `DocSummary`; extended in task 8)
+- `lib/fixtures/` — demo bills and city-work documents (prepared, unchanged)
+- `data/` — prepared OSM and seed JSON (unchanged)
+- `public/geo/` — districts GeoJSON and complexes (unchanged)
+- `public/demo/` — demo images (unchanged)
+- `scripts/` — OSM fetch scripts (unchanged)
+- `prisma/schema.prisma` — Prisma schema (sqlite, no models yet)
+- `components.json` — shadcn config
+- `eslint.config.mjs`, `postcss.config.mjs`, `next.config.ts`, `tsconfig.json` — tooling config
+- `.env.example` — env keys (§8)
+- `.claude/launch.json` — preview servers `web`, `web-prod`
