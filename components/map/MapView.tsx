@@ -66,9 +66,15 @@ function prefetchStyle(from: string, to: string) {
   }
 }
 
+/** How long the page waits for the map before switching without it. */
+const MAP_WAIT_MS = 400;
+/** The page's own fade (ThemeToggle): the still must not start fading while the page is still a snapshot. */
+const PAGE_FADE_MS = 340;
+
 /**
- * Lays a still of the current map under the HTML markers, switches the style beneath it and waits until the new style is
- * drawn. Resolves with the function that takes the still away.
+ * Lays a still of the current map under the HTML markers and switches the style beneath it. Resolves with the reveal
+ * function once the map has redrawn, or after MAP_WAIT_MS at most. A redrawn map is revealed at once (it changes together
+ * with the page); a late one keeps the old picture and fades it out when the new map is drawn — never a jump.
  */
 function redrawUnderStill(map: MapGL.Map, style: string) {
   const src = map.getCanvas();
@@ -78,16 +84,33 @@ function redrawUnderStill(map: MapGL.Map, style: string) {
   still.getContext("2d")?.drawImage(src, 0, 0); // needs preserveDrawingBuffer
   still.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none";
   src.after(still);
+
+  let drawn = false;
+  let revealedAt: number | null = null;
+  const fadeOut = () => {
+    const wait = Math.max(0, (revealedAt ?? 0) + PAGE_FADE_MS - performance.now());
+    setTimeout(() => {
+      still.style.transition = "opacity 300ms ease-out";
+      still.style.opacity = "0";
+      setTimeout(() => still.remove(), 320);
+    }, wait);
+  };
+  const reveal = () => {
+    revealedAt = performance.now();
+    if (drawn) still.remove();
+  };
+
   return new Promise<() => void>((resolve) => {
-    let done = false;
-    const ready = () => {
-      if (done) return;
-      done = true;
-      resolve(() => still.remove());
+    const onDrawn = () => {
+      if (drawn) return;
+      drawn = true;
+      if (revealedAt !== null) fadeOut();
+      resolve(reveal);
     };
-    setTimeout(ready, 1000); // a slow load must not hold the switch
-    // `styleload` fires before the canvas is redrawn (on the server by 50–100 ms), so watch the pixels instead:
-    // ready once the brightness has jumped (new theme) and then held still for two frames (labels in place).
+    setTimeout(() => resolve(reveal), MAP_WAIT_MS);
+    setTimeout(onDrawn, 2000); // a stuck load: let the still go anyway
+    // `styleload` fires before the canvas is redrawn, so watch the pixels: drawn once the brightness has jumped (new
+    // theme) and then held still for two frames (labels in place). `idle` covers browsers where the check never fires.
     const probe = document.createElement("canvas");
     probe.width = probe.height = 16;
     const ctx = probe.getContext("2d", { willReadFrequently: true });
@@ -104,17 +127,17 @@ function redrawUnderStill(map: MapGL.Map, style: string) {
     let jumped = false;
     let calm = 0;
     const watch = () => {
-      if (done) return;
+      if (drawn) return;
       const b = brightness();
       if (!jumped) jumped = Math.abs(b - start) > 30;
-      else if ((calm = Math.abs(b - prev) < 2 ? calm + 1 : 0) >= 2) return ready();
+      else if ((calm = Math.abs(b - prev) < 2 ? calm + 1 : 0) >= 2) return onDrawn();
       prev = b;
       requestAnimationFrame(watch);
     };
     map.setStyleById(style).then(() => {
       requestAnimationFrame(watch);
-      setTimeout(ready, 250); // where the pixel check never fires (e.g. a browser that reads the canvas blank)
-    }, ready);
+      map.once("idle", onDrawn);
+    }, onDrawn);
   });
 }
 
