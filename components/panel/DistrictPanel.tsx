@@ -2,7 +2,7 @@
 
 // District level (§5.3): header, metrics, frequent issues, management companies, microdistricts and complexes, AI digest.
 import Link from "next/link";
-import { ChevronRight, ExternalLink } from "lucide-react";
+import { ChevronRight, ExternalLink, X } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMap, useMapScene } from "@/components/map/MapContext";
 import { plural } from "@/lib/health";
@@ -28,13 +28,21 @@ export function DistrictPanel({ district, stats }: { district: DistrictDetailDTO
     <div className="flex flex-col gap-4 p-4 animate-in fade-in duration-300">
       <header className="flex items-start gap-3">
         <span className="mt-2.5 size-3 shrink-0 rounded-full" style={{ background: district.color }} />
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">{district.name} район</h1>
           <p className="text-muted-foreground">
             {district.population.toLocaleString("ru-RU")} {plural(district.population, ["житель", "жителя", "жителей"])} · данные{" "}
             {district.populationYear} года
           </p>
         </div>
+        <Link
+          href="/"
+          prefetch
+          aria-label="Закрыть район"
+          className="-mt-1 -mr-1 grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <X className="size-5" />
+        </Link>
       </header>
 
       <div className="grid grid-cols-3 gap-2">
