@@ -1,6 +1,7 @@
 # filemap
 
 - `START_PROMPT.md` — normative product spec (§N)
+- `middleware.ts` — every full page load redirects to `/` (start page)
 - `README.md` — project overview and run instructions (RU)
 - `CLAUDE.md` — agent rules and commands
 - `docs/SPEC.md` — decisions on top of START_PROMPT
