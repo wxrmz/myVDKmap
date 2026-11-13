@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { MoonIcon, SunIcon } from "lucide-react";
@@ -19,17 +19,24 @@ const noopSubscribe = () => () => {};
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
-  const isDark = resolvedTheme === "dark";
+  // The icon flips on press; the page follows once the map has redrawn.
+  const [pending, setPending] = useState<"light" | "dark" | null>(null);
+  const isDark = (pending ?? resolvedTheme) === "dark";
 
   async function toggle() {
+    if (pending) return;
     const next = isDark ? "light" : "dark";
+    setPending(next);
     // Map first: it redraws hidden under a still of itself. Then the page, with the still taken away in the same step,
     // so the new page and the new map fade in together.
     const waits: Promise<() => void>[] = [];
     window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
     const reveals = await Promise.all(waits);
     const apply = () => {
-      flushSync(() => setTheme(next));
+      flushSync(() => {
+        setTheme(next);
+        setPending(null);
+      });
       reveals.forEach((reveal) => reveal());
     };
 

@@ -111,7 +111,10 @@ function redrawUnderStill(map: MapGL.Map, style: string) {
       prev = b;
       requestAnimationFrame(watch);
     };
-    map.setStyleById(style).then(() => requestAnimationFrame(watch), ready);
+    map.setStyleById(style).then(() => {
+      requestAnimationFrame(watch);
+      setTimeout(ready, 250); // where the pixel check never fires (e.g. a browser that reads the canvas blank)
+    }, ready);
   });
 }
 
