@@ -68,7 +68,7 @@ function prefetchStyle(from: string, to: string) {
 
 /**
  * Lays a still of the current map under the HTML markers, switches the style beneath it and waits until the new style is
- * drawn, labels included. Resolves with the function that takes the still away.
+ * drawn. Resolves with the function that takes the still away.
  */
 function redrawUnderStill(map: MapGL.Map, style: string) {
   const src = map.getCanvas();
@@ -86,8 +86,8 @@ function redrawUnderStill(map: MapGL.Map, style: string) {
       resolve(() => still.remove());
     };
     setTimeout(ready, 600); // a slow load must not hold the switch
-    // Measured: labels settle ~300 ms after `styleload`; `idle` comes ~400 ms later still, for nothing visible.
-    map.setStyleById(style).then(() => setTimeout(ready, 300), ready);
+    // Measured: the map is ~98 % redrawn ~100 ms after `styleload`; the last labels land while the circle is opening.
+    map.setStyleById(style).then(() => setTimeout(ready, 100), ready);
   });
 }
 
