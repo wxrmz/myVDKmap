@@ -302,6 +302,8 @@ export function MapView({ className }: { className?: string }) {
           padding: insetsRef.current,
           controlsLayoutPadding: insetsRef.current,
           lang: "ru",
+          // Bottom right: on phones the right edge holds the theme, «Мои дома» and layers buttons.
+          zoomControl: "bottomRight",
           enableTrackResize: true,
         });
         map.once("idle", () => {

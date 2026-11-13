@@ -3,10 +3,11 @@
 // Navigation (§5.1): desktop rail 88 px and the phone tab bar. Links are fully prefetched.
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { CircleUser, Construction, Layers, Map as MapIcon, Receipt, Search, TriangleAlert } from "lucide-react";
+import { CircleUser, Construction, Heart, Layers, Map as MapIcon, Receipt, Search, TriangleAlert } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SEARCH_INPUT_ID } from "@/components/search/SearchBox";
 import { cn } from "@/lib/utils";
+import { FavoritesPopover } from "./FavoritesPopover";
 import { LayersPopover } from "./LayersPopover";
 
 const MAP = { href: "/", label: "Карта", Icon: MapIcon };
@@ -63,8 +64,15 @@ export function Rail() {
       {FLOWS.map((f) => (
         <RailLink key={f.href} {...f} />
       ))}
-      <div className="mt-auto flex w-full flex-col items-center gap-3">
+      <div className="mt-auto flex w-full flex-col items-center gap-1">
+        <FavoritesPopover side="right" align="end">
+          <button type="button" className={itemClass(false)}>
+            <Heart className="size-5" />
+            Мои дома
+          </button>
+        </FavoritesPopover>
         <RailLink {...CABINET} />
+        <span className="h-2" />
         <ThemeToggle />
       </div>
     </nav>
