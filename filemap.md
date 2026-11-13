@@ -11,13 +11,17 @@
 - `app/(map)/d/[district]/page.tsx` — `/d/[district]`: `DistrictPanel` (404 for unknown district)
 - `app/(map)/d/[district]/c/[complex]/page.tsx` — complex page: `ComplexCard`; wrong district in the URL → redirect to the canonical one
 - `app/(map)/house/[id]/page.tsx` — house passport; `osm-…` that resolves to another id → redirect to the canonical id (keeps `?issue=`)
-- `app/(map)/**/loading.tsx` — `PanelSkeleton` for each map page
-- `components/map/MapShell.tsx` — shell §5.1: rail, map beside the rail, panel on map pages, tab bar; phone/desktop by media query
+- `app/(map)/**/loading.tsx` — `PanelSkeleton` for each map page; `PageLoading` for the flow pages
+- `app/(map)/report/page.tsx` — `/report[?building=]`: `ReportWizard` (authorities, house from the passport)
+- `app/(map)/bill/page.tsx` — `/bill[?building=]`: `BillAnalyzer`
+- `app/(map)/changes/page.tsx` — `/changes[?building=&work=]`: `WorksFeed` (+ `getWorkStreets`) and `DocumentParser`
+- `app/(map)/me/page.tsx` — `/me`: `CabinetPage`
+- `components/map/MapShell.tsx` — shell §5.1: rail, map beside the rail, panel on map pages, flow pages as an overlay (desktop 680 px card, phone full-screen sheet; hidden while `data-map-pick`), tab bar; applies the font size setting, loads the session
 - `components/map/Rail.tsx` — `Rail` (desktop 88 px), `TabBar` (phone), `isMapPath`; all links `prefetch`
 - `components/panel/PanelSheet.tsx` — desktop 420 px panel column under the search; phone bottom sheet (112 px / half / 64 px from top, drag or tap the handle); sets map insets
 - `components/map/MapControls.tsx` — search + chips (breadcrumbs from district level, «Мой дом»); on phones round theme and layers buttons
 - `components/map/LayersPopover.tsx` — «Слои» popover §5.2
-- `components/search/SearchBox.tsx` — search §5.9 (`/` hotkey, rotating placeholder, debounced `/api/search`, results card); `SEARCH_INPUT_ID`
+- `components/search/SearchBox.tsx` — search §5.9 (`/` hotkey, rotating placeholder, debounced `/api/search`, results card); `SEARCH_INPUT_ID`; `onSelect` mode lists houses only (address step of /report)
 - `components/panel/CityPanel.tsx`, `DistrictPanel.tsx`, `ComplexCard.tsx` — panels §5.3 (each sets its map scene)
 - `components/panel/AiDigest.tsx` — district digest from `/api/ai/digest` (hidden on error)
 - `components/panel/BuildingLink.tsx` — house row (address, floors if known, open issues)
@@ -28,9 +32,8 @@
 - `components/house/CabinetButtons.tsx` — `SaveHouseButton`, `SupportButton` («Меня тоже касается» → POST support)
 - `components/house/ShareButton.tsx` — `navigator.share` or copy link + toast
 - `components/house/Spotlight.tsx` — highlighted issue row scrolled to center (`?issue=`)
-- `components/map/savedHouses.ts` — local cabinet in `localStorage["vdk-cabinet"]`: `getSavedHouses`, `toggleSavedHouse`, `markSupported`, `useCabinet`; event `cabinet:changed`
 - `components/map/MapContext.tsx` — `MapProvider`, `useMap`, `useMapScene`; types `MapData`, `MapScene`, `MapLevel`, `MapLayers`, `MapInsets`; issues refetch on `issues:changed`
-- `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, `theme:switch`, `map:ready`, 2GIS building selection
+- `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, `theme:switch`, `map:ready`, `map:click` (point for the report wizard; navigation off while picking), 2GIS building selection
 - `components/map/MapTip.tsx` — hover card (rAF-batched store `setTip`, framer-motion glide)
 - `components/map/shapes.ts` — `buildShapes` (label point and camera frame per district), `insideDistrict`, `clusterByDistance`
 - `components/map/shapes.test.ts` — self-check (`npx tsx components/map/shapes.test.ts`)
@@ -38,19 +41,40 @@
 - `components/ThemeToggle.tsx` — round sun/moon button; `theme:switch` event + `waits`, circular View Transition reveal; exports `ThemeSwitchDetail`
 - `components/Splash.tsx` — §5.10 splash (CSS bar, finishes on `map:ready`, 700 ms–6 s; hidden on /bill, /changes, /report, /me)
 - `components/PageLoading.tsx` — `PageLoading` (title + delayed shimmer cards) and `PanelSkeleton`
+- `components/flows/api.ts` — `api()` typed JSON fetch (errors → Russian toast + `null`), `readAsDataUrl`
+- `components/flows/FlowHeader.tsx` — flow page title row with a close link
+- `components/flows/ReportWizard.tsx` — §5.5 wizard (photo, description, address: passport / search / map point, AI result, save → `issues:changed` + cabinet); draft in the cabinet
+- `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis (demo, file, text), lines, recharts monthly chart, changes, save to cabinet
+- `components/flows/WorksFeed.tsx` — §5.7 feed: groups, `isDone`, `?building=` first, `?work=` highlight/scroll/open group
+- `components/flows/WorksSearch.tsx` — street field, street chips, «Найдено работ: N»
+- `components/flows/DocumentParser.tsx` — «Разобрать свой документ» via `/api/ai/document`
+- `components/cabinet/CabinetPage.tsx` — /me: login or profile + sections (right sticky list `layoutId="cabinet-tab"`, chips on phones)
+- `components/cabinet/Auth.tsx` — «Вход в кабинет»: demo Госуслуги, login / registration
+- `components/cabinet/HousesIssues.tsx` — «Мои дома» (summaries, subscriptions, works near), «Обращения» (draft, my issues)
+- `components/cabinet/BillsMeters.tsx` — «Квитанции» (saved, neighbours, capital repair), «Счётчики»
+- `components/cabinet/CommunitySettings.tsx` — «Соседи» (board, poll), «Настройки» (font size, notifications, profile, Госуслуги, password, delete account)
+- `components/cabinet/shared.tsx` — `useCabinet`, `useFontScale`, `useHouseSummaries`, formatters (`rub`, `monthLabel`, `dayLabel`), `CabinetSection`, `Empty`
 - `components/ui/` — shadcn (radix-ui) with §7 tweaks: accordion, badge, button, card, dialog, input, popover, skeleton, sonner, textarea
 - `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е)
-- `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`, `SearchResult`, `HealthDTO`
+- `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`, `SearchResult` (houses carry lat/lng), `HealthDTO`, `HouseSummaryDTO`
 - `lib/db.ts` — `prisma` PrismaClient singleton
 - `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `streetPattern`, `getWorkStreets` (§6.4)
 - `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getMapComplexes`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
 - `lib/nav.ts` — hrefs (`districtHref`, `complexHref`, `houseHref`, `issueHref`, `workHref`), `complexLabel`, `breadcrumbs`
 - `lib/health.ts` — `computeHealth` (§6.5), `plural` (Russian plurals)
-- `lib/streets.test.ts`, `lib/health.test.ts` — self-checks (`npx tsx <file>`)
+- `lib/auth.ts` — server auth §5.8: scrypt hash/verify, sessions (`vdk_session`, SHA-256 in DB), rate limit, zod schemas, `publicUser`
+- `lib/session.ts` — client session store (`useSession`, `setSessionUser`, `clearSession`); starts/stops cabinet sync
+- `lib/cabinet.ts` — cabinet data §5.8: `CabinetSchema`, `mergeCabinets`, localStorage store (`updateCabinet`, `getCabinet`), server sync, `toggleSavedHouse`, `markSupported`; event `cabinet:changed`
+- `lib/streets.test.ts`, `lib/health.test.ts`, `lib/auth.test.ts`, `lib/cabinet.test.ts` — self-checks (`npx tsx <file>`)
 - `lib/ai/http.ts` — `apiError`, `parseBody` (8 MB limit, JSON, zod with Russian messages), `serverError`
 - `app/api/search/route.ts` — `GET /api/search?q=`
 - `app/api/issues/route.ts` — `GET /api/issues[?building=]`, `POST /api/issues` (zod, authority and house checks, `osm-…` houses created lazily)
 - `app/api/issues/[id]/support/route.ts` — `POST` «Меня тоже касается» → `{ supports }`
+- `app/api/auth/register|login|logout/route.ts` — `POST` (rate-limited register/login)
+- `app/api/auth/me/route.ts` — `GET` (`{ user | null }`), `PATCH` name/phone/password, `DELETE` account
+- `app/api/auth/esia/demo/route.ts` — `POST` link or demo sign-in, `DELETE` unlink
+- `app/api/cabinet/data/route.ts` — `GET|PUT` the signed-in user's cabinet
+- `app/api/cabinet/houses/route.ts` — `GET ?ids=` saved house summaries (`HouseSummaryDTO`)
 - `lib/ai/schemas.ts` — zod schemas of the AI layer: route inputs and outputs of `classifyIssue`, `parseBill` (`BillRaw` → `BillOutput`), `summarizeDocument` (`DocSummary`, `DocumentOutput`), `districtDigest`
 - `lib/ai/index.ts` — AI facade (§6.1): `classifyIssue`, `parseBill`, `summarizeDocument` (+ house binding), `districtDigest`; provider from `AI_PROVIDER` (openai only with `AI_API_KEY` and `AI_MODEL`)
 - `lib/ai/mock.ts` — deterministic provider: keyword classification over the authority handbook, receipt text parser + `analyzeBill` (glossary, history, tariff/season changes), prepared or heuristic document summaries, `houseNumbers`, `bindBuildings`, `districtFacts`/`districtDigest`

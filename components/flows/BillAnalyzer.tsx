@@ -1,0 +1,183 @@
+"use client";
+
+// «Разобрать квитанцию» (§5.6): photo, PDF, text or the demo → lines in plain words, chart by month, what changed.
+import { useRef, useState } from "react";
+import { FileUp, Loader2, Save, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { monthLabel, rub, useCabinet } from "@/components/cabinet/shared";
+import type { BillOutput } from "@/lib/ai/schemas";
+import { updateCabinet } from "@/lib/cabinet";
+import { houseHref } from "@/lib/nav";
+import { api, readAsDataUrl } from "./api";
+import { FlowHeader } from "./FlowHeader";
+
+// Base64 grows the file by a third; the API takes up to 8 MB.
+const MAX_FILE = 5 * 1024 * 1024;
+
+const billId = (b: BillOutput) => `bill-${b.period ?? "unknown"}-${b.total}`;
+
+export function BillAnalyzer({ house }: { house: { id: string; address: string } | null }) {
+  const [text, setText] = useState("");
+  const [bill, setBill] = useState<BillOutput | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const saved = useCabinet().bills.some((b) => bill && b.id === billId(bill));
+
+  async function analyze(input: { demo?: true; text?: string; image?: string }) {
+    setBusy(true);
+    const res = await api<BillOutput>("/api/ai/bill", { body: { ...input, buildingId: house?.id } });
+    if (res) setBill(res);
+    setBusy(false);
+  }
+
+  async function pickFile(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/") && file.type !== "application/pdf") return toast.error("Нужно фото или PDF квитанции");
+    if (file.size > MAX_FILE) return toast.error("Файл больше 5 МБ. Выберите поменьше");
+    await analyze({ image: await readAsDataUrl(file) });
+  }
+
+  function save() {
+    if (!bill) return;
+    const entry = {
+      id: billId(bill),
+      period: bill.period,
+      total: bill.total,
+      buildingId: house?.id,
+      items: bill.items.map(({ name, plainName, amount }) => ({ name, plainName, amount })),
+      savedAt: new Date().toISOString(),
+    };
+    updateCabinet((c) => ({ ...c, bills: [...c.bills.filter((b) => b.id !== entry.id), entry] }));
+    toast.success("Квитанция сохранена в кабинете");
+  }
+
+  const chart = bill?.history.map((h) => ({ month: monthLabel(h.period).split(" ")[0].slice(0, 3), label: monthLabel(h.period), total: h.total }));
+
+  return (
+    <div className="flex flex-col gap-5 p-4 md:p-6">
+      <FlowHeader
+        title="Разобрать квитанцию"
+        description={
+          house ? `Квитанция дома ${house.address}: объясним каждую строку и что изменилось.` : "Объясним каждую строку квитанции простыми словами и что изменилось."
+        }
+        backHref={house ? houseHref(house.id) : "/"}
+      />
+
+      <section className="panel-box flex flex-col gap-3">
+        <div className="flex flex-wrap gap-2">
+          <Button className="h-11 rounded-xl" onClick={() => analyze({ demo: true })} disabled={busy}>
+            <Sparkles /> Пример квитанции
+          </Button>
+          <Button variant="outline" className="h-11 rounded-xl" onClick={() => fileRef.current?.click()} disabled={busy}>
+            <FileUp /> Фото или PDF
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              pickFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        <Textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          maxLength={20000}
+          rows={4}
+          placeholder="Или вставьте текст квитанции: «Холодная вода … 320,64»"
+          aria-label="Текст квитанции"
+          className="text-base"
+        />
+        <Button variant="outline" className="h-11 self-start rounded-xl" disabled={busy || !text.trim()} onClick={() => analyze({ text })}>
+          Разобрать текст
+        </Button>
+      </section>
+
+      {busy && (
+        <div className="panel-box flex items-center gap-3 text-muted-foreground animate-in fade-in duration-200">
+          <Loader2 className="size-5 animate-spin" /> Читаем квитанцию…
+        </div>
+      )}
+
+      {bill && !busy && (
+        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <section className="panel-box flex flex-col gap-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-lg font-semibold">{bill.period ? monthLabel(bill.period) : "Квитанция"}</h2>
+              <span className="text-lg font-semibold tabular-nums">{rub(bill.total)}</span>
+            </div>
+            <ul className="flex flex-col divide-y divide-border">
+              {bill.items.map((i) => (
+                <li key={i.name} className="flex gap-3 py-2.5">
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="font-medium">{i.plainName}</span>
+                    <span className="text-sm text-muted-foreground">{i.explanation}</span>
+                    {i.plainName !== i.name && <span className="text-xs text-muted-foreground">В квитанции: {i.name}</span>}
+                  </div>
+                  <span className="shrink-0 font-medium tabular-nums">{rub(i.amount)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {chart && chart.length > 1 && (
+            <section className="panel-box flex flex-col gap-3">
+              <h2 className="text-lg font-semibold">Сумма по месяцам</h2>
+              <div className="h-52" role="img" aria-label={chart.map((c) => `${c.label}: ${rub(c.total)}`).join(", ")}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chart} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
+                    <YAxis width={48} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
+                    <Tooltip
+                      cursor={{ fill: "var(--muted)" }}
+                      formatter={(v) => [rub(Number(v)), "Сумма"]}
+                      labelFormatter={(_, p) => p[0]?.payload.label ?? ""}
+                      contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--foreground)" }}
+                    />
+                    <Bar dataKey="total" fill="var(--foreground)" radius={[6, 6, 0, 0]} maxBarSize={48} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+          )}
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold">Что изменилось и что делать</h2>
+            {bill.changes.length ? (
+              bill.changes.map((c) => {
+                const Icon = c.deltaPercent >= 0 ? TrendingUp : TrendingDown;
+                return (
+                  <article key={c.item} className="panel-box flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <Icon className={c.deltaPercent >= 0 ? "size-5 text-coral" : "size-5 text-turquoise"} />
+                      <span className="flex-1 font-medium">{c.item}</span>
+                      <span className={c.deltaPercent >= 0 ? "font-semibold text-coral" : "font-semibold text-turquoise"}>
+                        {c.deltaPercent > 0 ? "+" : ""}
+                        {c.deltaPercent} %
+                      </span>
+                    </div>
+                    <p className="text-sm">{c.likelyReason}</p>
+                    <p className="text-sm text-muted-foreground">{c.action}</p>
+                  </article>
+                );
+              })
+            ) : (
+              <p className="text-sm text-muted-foreground">По сравнению с прошлыми месяцами заметных изменений нет.</p>
+            )}
+          </section>
+
+          <Button variant={saved ? "outline" : "default"} className="h-11 self-start rounded-xl" onClick={save} disabled={saved}>
+            <Save /> {saved ? "Сохранено в кабинете" : "Сохранить в кабинет"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

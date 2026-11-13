@@ -18,7 +18,16 @@ const TYPE: Record<SearchResult["type"], { label: string; Icon: typeof MapIcon }
   building: { label: "Дом", Icon: House },
 };
 
-export function SearchBox({ className }: { className?: string }) {
+/** With `onSelect`, only houses are listed and choosing one calls it instead of navigating (address step of /report). */
+export function SearchBox({
+  className,
+  onSelect,
+  inputId = SEARCH_INPUT_ID,
+}: {
+  className?: string;
+  onSelect?: (house: SearchResult & { lat: number; lng: number }) => void;
+  inputId?: string;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
@@ -35,6 +44,7 @@ export function SearchBox({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
+    if (onSelect) return; // the `/` hotkey belongs to the map search only
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (e.key !== "/" || t?.closest("input, textarea, [contenteditable=true]")) return;
@@ -43,7 +53,7 @@ export function SearchBox({ className }: { className?: string }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [onSelect]);
 
   useEffect(() => {
     if (!query) return;
@@ -52,7 +62,8 @@ export function SearchBox({ className }: { className?: string }) {
       setLoading(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: ctrl.signal });
-        setResults(res.ok ? ((await res.json()) as SearchResult[]) : []);
+        const found = res.ok ? ((await res.json()) as SearchResult[]) : [];
+        setResults(onSelect ? found.filter((r) => r.lat !== undefined) : found);
         setActive(0);
       } catch {
         if (!ctrl.signal.aborted) setResults([]);
@@ -63,10 +74,11 @@ export function SearchBox({ className }: { className?: string }) {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [query]);
+  }, [query, onSelect]);
 
   function go(r: SearchResult) {
-    router.push(r.href);
+    if (!onSelect) router.push(r.href);
+    else if (r.lat !== undefined && r.lng !== undefined) onSelect({ ...r, lat: r.lat, lng: r.lng });
     setQ("");
     setResults(null);
     inputRef.current?.blur();
@@ -101,7 +113,7 @@ export function SearchBox({ className }: { className?: string }) {
         <div className="relative min-w-0 flex-1">
           <input
             ref={inputRef}
-            id={SEARCH_INPUT_ID}
+            id={inputId}
             value={q}
             onChange={(e) => {
               setQ(e.target.value);
@@ -113,7 +125,7 @@ export function SearchBox({ className }: { className?: string }) {
             aria-label="Поиск: район, ЖК, улица или дом"
             role="combobox"
             aria-expanded={open}
-            aria-controls="map-search-results"
+            aria-controls={`${inputId}-results`}
             autoComplete="off"
             className="h-12 w-full bg-transparent text-base outline-none"
           />
@@ -155,7 +167,7 @@ export function SearchBox({ className }: { className?: string }) {
       <AnimatePresence>
         {open && (showSkeleton || results) && (
           <motion.div
-            id="map-search-results"
+            id={`${inputId}-results`}
             role="listbox"
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}

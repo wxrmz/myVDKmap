@@ -5,8 +5,9 @@ import { useState } from "react";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { markSupported, toggleSavedHouse, useCabinet } from "@/components/map/savedHouses";
+import { markSupported, toggleSavedHouse } from "@/lib/cabinet";
 import { cn } from "@/lib/utils";
+import { useCabinet } from "@/components/cabinet/shared";
 
 export function SaveHouseButton({ buildingId }: { buildingId: string }) {
   const saved = useCabinet().houses.includes(buildingId);

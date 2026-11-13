@@ -8,9 +8,9 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { SearchBox } from "@/components/search/SearchBox";
 import { Button } from "@/components/ui/button";
 import { useMap } from "@/components/map/MapContext";
-import { useCabinet } from "@/components/map/savedHouses";
 import { breadcrumbs, houseHref } from "@/lib/nav";
 import { LayersPopover } from "./LayersPopover";
+import { useCabinet } from "@/components/cabinet/shared";
 
 const chip =
   "pointer-events-auto flex h-8 shrink-0 items-center gap-1 rounded-full bg-card px-3 text-sm shadow-sm ring-1 ring-border transition-colors hover:bg-muted";

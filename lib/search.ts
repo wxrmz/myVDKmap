@@ -85,7 +85,7 @@ export async function searchAll(q: string, limit = 400): Promise<SearchResult[]>
       orderBy: { name: "asc" },
     }),
     prisma.building.findMany({
-      select: { id: true, address: true, complex: { select: { name: true } }, microdistrict: { select: { districtId: true } } },
+      select: { id: true, address: true, lat: true, lng: true, complex: { select: { name: true } }, microdistrict: { select: { districtId: true } } },
     }),
   ]);
   const districtName = new Map(districtRows.map((d) => [d.id, `${d.name} район`]));
@@ -120,6 +120,8 @@ export async function searchAll(q: string, limit = 400): Promise<SearchResult[]>
       subtitle: [b.complex && complexLabel(b.complex.name), districtName.get(districtId)].filter(Boolean).join(" · "),
       href: houseHref(b.id),
       districtId,
+      lat: b.lat,
+      lng: b.lng,
     });
   }
 
@@ -139,6 +141,8 @@ export async function searchAll(q: string, limit = 400): Promise<SearchResult[]>
       subtitle: (districtId && districtName.get(districtId)) || "Владивосток",
       href: houseHref(id),
       ...(districtId && { districtId }),
+      lat: p[3],
+      lng: p[4],
     });
     if (out.length >= limit) break;
   }

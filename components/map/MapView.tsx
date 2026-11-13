@@ -156,7 +156,13 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
     setTip(null, true);
   };
   map.on("movestart", hide);
-  map.on("click", hide);
+  // The report wizard listens for this to take a point on the map (§5.5).
+  const point = (lngLat: number[]) =>
+    window.dispatchEvent(new CustomEvent<MapClickDetail>("map:click", { detail: { lng: lngLat[0], lat: lngLat[1] } }));
+  map.on("click", (e) => {
+    hide();
+    point(e.lngLat);
+  });
 
   return {
     district(id: string | null, point?: number[]) {
@@ -171,10 +177,14 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
     },
     /** Navigates, or pins the tip when there is nowhere to go (an issue without a house). */
     open(href: string | null, target: TipTarget, el: HTMLElement) {
+      if (picking()) return;
       if (href) latest.current.push(href);
       else setTip({ target, ...centerOf(el), pinned: true });
     },
+    /** District polygons swallow the map click: they forward the point while a point is being picked. */
+    point,
     go(href: string) {
+      if (picking()) return;
       latest.current.push(href);
     },
     /** Redraws the highlight with the current theme and mode. */
@@ -189,6 +199,14 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
       hide();
     },
   };
+}
+
+/** The report wizard is taking a point (§5.5): map clicks must not navigate away. */
+const picking = () => document.documentElement.dataset.mapPick !== undefined;
+
+export interface MapClickDetail {
+  lat: number;
+  lng: number;
 }
 
 type Ui = ReturnType<typeof createUi>;
@@ -300,7 +318,7 @@ export function MapView({ className }: { className?: string }) {
         p.on("mouseover", (e) => ui.district(d.id, e.point));
         p.on("mousemove", (e) => ui.district(d.id, e.point));
         p.on("mouseout", () => ui.district(null));
-        p.on("click", () => ui.go(districtHref(d.id)));
+        p.on("click", (e) => (picking() ? ui.point(e.lngLat) : ui.go(districtHref(d.id))));
         return p;
       });
     });
@@ -513,7 +531,7 @@ const Markers = memo(function Markers({
             key={`work-${w.id}`}
             api={api}
             at={w}
-            z={2}
+            z={4}
             label={w.title}
             tip={{ kind: "work", work: w }}
             onClick={() => api.ui.go(workHref(w.id))}
@@ -568,7 +586,7 @@ const Markers = memo(function Markers({
           key={`house-${b.id}`}
           api={api}
           at={b}
-          z={4}
+          z={5}
           label="Дом"
           onClick={() => api.ui.go(houseHref(b.id))}
           className="p-1"

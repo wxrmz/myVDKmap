@@ -170,6 +170,9 @@ export interface SearchResult {
   subtitle: string;
   href: string;
   districtId?: string;
+  /** Houses only: the point, so a found house can be used as an address. */
+  lat?: number;
+  lng?: number;
 }
 
 export interface HealthDTO {
@@ -217,4 +220,15 @@ export interface DistrictStatsDTO {
   openIssues: number;
   totalIssues: number;
   topCategories: { category: IssueCategory; count: number }[];
+}
+
+/** Saved house in the cabinet (`/api/cabinet/houses`). `id` is the id the cabinet stores. */
+export interface HouseSummaryDTO {
+  id: string;
+  address: string;
+  district: string | null;
+  health: HealthDTO;
+  openIssues: number;
+  bills: Pick<BillDTO, "period" | "total">[];
+  works: (Pick<CityWorkDTO, "id" | "title" | "kind" | "startDate" | "endDate"> & { affectsBuilding: boolean })[];
 }
