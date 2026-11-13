@@ -183,6 +183,13 @@ export interface DistrictWithCountsDTO extends DistrictDTO {
   openIssues: number;
 }
 
+/** Complex as the map shows it (`getMapComplexes`): with its district, house count and open issues. */
+export interface MapComplexDTO extends ComplexDTO {
+  districtId: string;
+  houses: number;
+  openIssues: number;
+}
+
 export interface DistrictDetailDTO extends DistrictWithCountsDTO {
   microdistricts: (MicrodistrictDTO & { complexes: ComplexDTO[] })[];
   complexCount: number;

@@ -1,10 +1,18 @@
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { getComplex } from "@/lib/queries";
+import { DevHarness } from "./DevHarness";
 
-export default function Page() {
+// TEMPORARY (task 5): map harness; tasks 6–7 replace this page with the city panel and delete DevHarness.
+export default async function Page() {
+  const demo = process.env.NODE_ENV === "production" ? null : await getComplex("fregat-2");
   return (
-    <main className="flex min-h-dvh items-center justify-center gap-4 p-4">
-      <span className="text-2xl font-semibold">Мой дом. Владивосток</span>
-      <ThemeToggle />
-    </main>
+    <DevHarness
+      demo={
+        demo && {
+          districtId: demo.district.id,
+          complexId: demo.id,
+          buildings: demo.buildings.map((b) => ({ id: b.id, lat: b.lat, lng: b.lng })),
+        }
+      }
+    />
   );
 }

@@ -6,7 +6,14 @@
 - `docs/PLAN.md` — task list and status
 - `app/layout.tsx` — root layout: Inter, `Providers`, `Splash`, metadata
 - `app/globals.css` — §7 tokens (light/dark), `panel-box`, `.skeleton-shimmer`, `<details>` animation, view-transition and splash CSS
-- `app/(map)/page.tsx` — placeholder home page with `ThemeToggle` (until task 6)
+- `app/(map)/layout.tsx` — map group layout (`force-dynamic`): fetches map data once, `MapProvider` + `MapView` + page
+- `app/(map)/page.tsx` — TEMPORARY harness (task 5): renders `DevHarness`; replaced in tasks 6–7
+- `app/(map)/DevHarness.tsx` — TEMPORARY: sets the city scene; in dev a control for scenes, layers and theme (delete in task 6/7)
+- `components/map/MapContext.tsx` — `MapProvider`, `useMap`, `useMapScene`; types `MapData`, `MapScene`, `MapLevel`, `MapLayers`, `MapInsets`; issues refetch on `issues:changed`
+- `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, `theme:switch`, `map:ready`, 2GIS building selection
+- `components/map/MapTip.tsx` — hover card (rAF-batched store `setTip`, framer-motion glide)
+- `components/map/shapes.ts` — `buildShapes` (label point and camera frame per district), `insideDistrict`, `clusterByDistance`
+- `components/map/shapes.test.ts` — self-check (`npx tsx components/map/shapes.test.ts`)
 - `components/providers.tsx` — next-themes, `MotionConfig reducedMotion="user"`, sonner `Toaster`
 - `components/ThemeToggle.tsx` — round sun/moon button; `theme:switch` event + `waits`, circular View Transition reveal; exports `ThemeSwitchDetail`
 - `components/Splash.tsx` — §5.10 splash (CSS bar, finishes on `map:ready`, 700 ms–6 s; hidden on /bill, /changes, /report, /me)
@@ -16,7 +23,7 @@
 - `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`, `SearchResult`, `HealthDTO`
 - `lib/db.ts` — `prisma` PrismaClient singleton
 - `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `streetPattern`, `getWorkStreets` (§6.4)
-- `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
+- `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getMapComplexes`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
 - `lib/nav.ts` — hrefs (`districtHref`, `complexHref`, `houseHref`, `issueHref`, `workHref`), `complexLabel`, `breadcrumbs`
 - `lib/health.ts` — `computeHealth` (§6.5), `plural` (Russian plurals)
 - `lib/streets.test.ts`, `lib/health.test.ts` — self-checks (`npx tsx <file>`)

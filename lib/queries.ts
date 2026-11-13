@@ -16,6 +16,7 @@ import type {
   IssueCategory,
   IssueDTO,
   IssueStatus,
+  MapComplexDTO,
   Severity,
   WorkKind,
 } from "@/lib/types";
@@ -118,6 +119,22 @@ export async function getComplex(id: string): Promise<ComplexDetailDTO | null> {
     buildings: withCounts,
     openIssues: withCounts.reduce((n, b) => n + b.openIssues, 0),
   };
+}
+
+export async function getMapComplexes(): Promise<MapComplexDTO[]> {
+  const rows = await prisma.complex.findMany({
+    orderBy: { name: "asc" },
+    include: {
+      microdistrict: { select: { districtId: true } },
+      buildings: { select: { _count: { select: { issues: { where: OPEN } } } } },
+    },
+  });
+  return rows.map(({ microdistrict, buildings, ...c }) => ({
+    ...c,
+    districtId: microdistrict.districtId,
+    houses: buildings.length,
+    openIssues: buildings.reduce((n, b) => n + b._count.issues, 0),
+  }));
 }
 
 /** House passport. `osm-<osmId>` ids not in the DB are created lazily (§6.3); the result may then carry an existing house's id. */
