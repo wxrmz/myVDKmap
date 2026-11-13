@@ -472,24 +472,35 @@ const Markers = memo(function Markers({
   scene: MapScene;
   layers: MapLayers;
 }) {
+  // Complexes, issues and works appear only once a district is chosen, and only inside it.
+  const focusShape = scene.level !== "city" && scene.districtId ? shapes[scene.districtId] : undefined;
+  const districtComplexes = useMemo(
+    () => (focusShape ? complexes.filter((c) => c.districtId === scene.districtId) : []),
+    [complexes, focusShape, scene.districtId],
+  );
+  const districtIssues = useMemo(
+    () => (focusShape ? issues.filter((i) => insideDistrict(focusShape, i)) : []),
+    [issues, focusShape],
+  );
+
   const [clusters, setClusters] = useState<IssueDTO[][]>([]);
   useEffect(() => {
-    const update = () => setClusters(clusterByDistance(issues, (i) => api.map.project([i.lng, i.lat]), CLUSTER_PX));
+    const update = () => setClusters(clusterByDistance(districtIssues, (i) => api.map.project([i.lng, i.lat]), CLUSTER_PX));
     update();
     api.map.on("moveend", update);
     return () => {
       api.map.off("moveend", update);
     };
-  }, [api, issues]);
+  }, [api, districtIssues]);
 
-  const focusShape = scene.level !== "city" && scene.districtId ? shapes[scene.districtId] : undefined;
   const liveWorks = useMemo(() => {
+    if (!focusShape) return [];
     const now = Date.now();
     return works.flatMap((w) =>
       w.lat !== null &&
       w.lng !== null &&
       (!w.endDate || now <= Date.parse(w.endDate) + DAY) &&
-      (!focusShape || insideDistrict(focusShape, { lat: w.lat, lng: w.lng }))
+      insideDistrict(focusShape, { lat: w.lat, lng: w.lng })
         ? [{ ...w, lat: w.lat, lng: w.lng }]
         : [],
     );
@@ -510,7 +521,7 @@ const Markers = memo(function Markers({
       })}
 
       {layers.complexes &&
-        complexes.map((c) => (
+        districtComplexes.map((c) => (
           <Pin
             key={`complex-${c.id}`}
             api={api}

@@ -1,14 +1,13 @@
 "use client";
 
-// Over the map, top left (§5.1): search and the chips row — breadcrumbs from district level and «Мой дом».
-import { Fragment } from "react";
+// Over the map, top left (§5.1): search and the «Мой дом» chip.
 import Link from "next/link";
-import { ChevronRight, Heart, Layers } from "lucide-react";
+import { Heart, Layers } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SearchBox } from "@/components/search/SearchBox";
 import { Button } from "@/components/ui/button";
 import { useMap } from "@/components/map/MapContext";
-import { breadcrumbs, houseHref } from "@/lib/nav";
+import { houseHref } from "@/lib/nav";
 import { LayersPopover } from "./LayersPopover";
 import { useCabinet } from "@/components/cabinet/shared";
 
@@ -16,34 +15,17 @@ const chip =
   "pointer-events-auto flex h-8 shrink-0 items-center gap-1 rounded-full bg-card px-3 text-sm shadow-sm ring-1 ring-border transition-colors hover:bg-muted";
 
 function Chips() {
-  const { scene, districts, complexes } = useMap();
+  const { scene } = useMap();
   const { houses } = useCabinet();
-  const district = districts.find((d) => d.id === scene.districtId);
-  const complex = complexes.find((c) => c.id === scene.complexId);
-  const crumbs = scene.level !== "city" && district ? breadcrumbs({ district, complex }) : [];
   const home =
     houses.length > 1 ? "/me" : houses.length === 1 && houses[0] !== scene.buildingId ? houseHref(houses[0]) : null;
-  if (!crumbs.length && !home) return null;
+  if (!home) return null;
   return (
     <div className="flex flex-wrap gap-2 animate-in fade-in duration-200">
-      {crumbs.length > 0 && (
-        <nav aria-label="Где вы" className={`${chip} max-w-full overflow-x-auto [scrollbar-width:none] hover:bg-card`}>
-          {crumbs.map((c, i) => (
-            <Fragment key={c.href}>
-              {i > 0 && <ChevronRight className="size-3.5 text-muted-foreground" />}
-              <Link href={c.href} prefetch className="whitespace-nowrap text-muted-foreground hover:text-foreground">
-                {c.label}
-              </Link>
-            </Fragment>
-          ))}
-        </nav>
-      )}
-      {home && (
-        <Link href={home} prefetch className={chip}>
-          <Heart className="size-3.5 fill-coral text-coral" />
-          Мой дом
-        </Link>
-      )}
+      <Link href={home} prefetch className={chip}>
+        <Heart className="size-3.5 fill-coral text-coral" />
+        Мой дом
+      </Link>
     </div>
   );
 }
