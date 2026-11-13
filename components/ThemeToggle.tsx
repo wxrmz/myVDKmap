@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
- * `theme:switch` event detail: the map pushes into `waits` a promise that resolves once it has redrawn in the new theme
- * under a still of itself, with a function that takes the still away.
+ * `theme:switch` event detail: the map pushes into `waits` a promise with the function that shows it in the new theme
+ * (its night map), applied in the same step as the page.
  */
 export type ThemeSwitchDetail = { theme: "light" | "dark"; waits: Promise<() => void>[] };
 
@@ -19,7 +19,7 @@ const noopSubscribe = () => () => {};
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
-  // The icon flips on press; the page follows once the map has redrawn.
+  // The icon flips on press, the page right after.
   const [pending, setPending] = useState<"light" | "dark" | null>(null);
   const isDark = (pending ?? resolvedTheme) === "dark";
 
@@ -27,8 +27,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     if (pending) return;
     const next = isDark ? "light" : "dark";
     setPending(next);
-    // Map first: it redraws hidden under a still of itself. Then the page, with the still taken away in the same step,
-    // so the new page and the new map fade in together.
+    // The map answers with how to show itself in the new theme; page and map then change in one step and fade in together.
     const waits: Promise<() => void>[] = [];
     window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
     const reveals = await Promise.all(waits);
@@ -56,7 +55,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       variant="outline"
       size="icon"
       aria-label="Сменить тему"
-      // Starts on press, not release: the ~50 ms the map needs for its new style pass while the button is still held.
+      // Starts on press, not release: answers a few dozen ms sooner.
       onPointerDown={(e) => e.button === 0 && e.isPrimary && toggle()}
       // Keyboard (Enter / Space) has no pointerdown; its click comes with detail 0.
       onClick={(e) => e.detail === 0 && toggle()}
