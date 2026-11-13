@@ -67,30 +67,27 @@ function prefetchStyle(from: string, to: string) {
 }
 
 /**
- * Lays a still of the current map over it, switches the style under it, and fades the still out once the new style is
- * fully drawn. Resolves at the fade, so the page can start its own colour fade in the same frame.
+ * Lays a still of the current map under the HTML markers, switches the style beneath it and waits until the new style is
+ * drawn, labels included. Resolves with the function that takes the still away.
  */
-function crossfadeStyle(map: MapGL.Map, container: HTMLElement, style: string) {
+function redrawUnderStill(map: MapGL.Map, style: string) {
   const src = map.getCanvas();
   const still = document.createElement("canvas");
   still.width = src.width;
   still.height = src.height;
   still.getContext("2d")?.drawImage(src, 0, 0); // needs preserveDrawingBuffer
-  still.className = "map-still"; // its fade is in globals.css, next to the page's colour fade
   still.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none";
-  container.append(still);
-  return new Promise<void>((resolve) => {
+  src.after(still);
+  return new Promise<() => void>((resolve) => {
     let done = false;
-    const reveal = () => {
+    const ready = () => {
       if (done) return;
       done = true;
-      still.style.opacity = "0";
-      setTimeout(() => still.remove(), 500);
-      resolve();
+      resolve(() => still.remove());
     };
-    setTimeout(reveal, 1000); // a slow load must not hold the switch or leave the old map on screen
-    // `idle` after the style is in: fully drawn, labels included, so nothing on the map changes after the fade.
-    map.setStyleById(style).then(() => map.once("idle", reveal), reveal);
+    setTimeout(ready, 600); // a slow load must not hold the switch
+    // Measured: labels settle ~300 ms after `styleload`; `idle` comes ~400 ms later still, for nothing visible.
+    map.setStyleById(style).then(() => setTimeout(ready, 300), ready);
   });
 }
 
@@ -292,7 +289,7 @@ export function MapView({ className }: { className?: string }) {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const pageTheme: Theme = resolvedTheme === "dark" ? "dark" : "light";
-  // On `theme:switch` the map takes the new theme before the page does: its polygons redraw under the still, not mid-fade.
+  // On `theme:switch` the map takes the new theme before the page does: its polygons redraw under the still.
   const [switchTo, setSwitchTo] = useState<Theme | null>(null);
   const theme = switchTo ?? pageTheme;
   const focus = scene.level === "city" ? undefined : scene.districtId;
@@ -333,7 +330,7 @@ export function MapView({ className }: { className?: string }) {
           padding: insetsRef.current,
           controlsLayoutPadding: insetsRef.current,
           lang: "ru",
-          // Lets the theme crossfade copy the current frame.
+          // Lets the theme switch copy the current frame for its still.
           preserveDrawingBuffer: true,
           // Bottom right: on phones the right edge holds the theme, «Мои дома» and layers buttons.
           zoomControl: "bottomRight",
@@ -354,26 +351,26 @@ export function MapView({ className }: { className?: string }) {
     };
   }, []);
 
-  // Theme. The toggle sends `theme:switch` first: the map switches under a still of itself, and the page waits for it,
-  // so both fade together. Other theme changes just follow next-themes.
+  // Theme: the toggle sends `theme:switch` and waits while the map redraws hidden under a still, then reveals both
+  // together. Other theme changes just follow next-themes.
   useEffect(() => {
     if (switchTo) {
       if (switchTo === pageTheme) setSwitchTo(null); // the page has caught up with the map
       return;
     }
-    if (!api || styleTheme.current === pageTheme || !containerRef.current) return;
+    if (!api || styleTheme.current === pageTheme) return;
     styleTheme.current = pageTheme;
-    crossfadeStyle(api.map, containerRef.current, STYLES[pageTheme]);
+    api.map.setStyleById(STYLES[pageTheme]).catch(() => {});
   }, [api, pageTheme, switchTo]);
 
   useEffect(() => {
     if (!api) return;
     const onSwitch = (e: Event) => {
       const { theme: next, waits } = (e as CustomEvent<ThemeSwitchDetail>).detail;
-      if (styleTheme.current === next || !containerRef.current) return;
+      if (styleTheme.current === next) return;
       styleTheme.current = next;
-      setSwitchTo(next);
-      waits.push(crossfadeStyle(api.map, containerRef.current, STYLES[next]));
+      setSwitchTo(next); // district polygons take the new colours now, under the still
+      waits.push(redrawUnderStill(api.map, STYLES[next]));
     };
     window.addEventListener("theme:switch", onSwitch);
     return () => window.removeEventListener("theme:switch", onSwitch);

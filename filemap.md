@@ -38,12 +38,12 @@
 - `components/house/CabinetButtons.tsx` — `SaveHouseButton`, `SupportButton` («Меня тоже касается» → POST support)
 - `components/house/ShareButton.tsx` — `navigator.share` or copy link + toast
 - `components/map/MapContext.tsx` — `MapProvider`, `useMap`, `useMapScene`; types `MapData`, `MapScene`, `MapLevel`, `MapLayers`, `MapInsets`; issues refetch on `issues:changed`
-- `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, theme crossfade (a still of the old map fades out over the new style), `map:ready`, `map:click` (point for the report wizard; navigation off while picking), 2GIS building selection; from zoom 15.5 districts stop catching clicks and a click opens the passport of the clicked 2GIS building (`byid`, or geocode within 20 m without one → `/api/buildings/at`), highlighting it at once
+- `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, `theme:switch` (redraws in the new theme under a still of the old frame, laid under the HTML markers), `map:ready`, `map:click` (point for the report wizard; navigation off while picking), 2GIS building selection; from zoom 15.5 districts stop catching clicks and a click opens the passport of the clicked 2GIS building (`byid`, or geocode within 20 m without one → `/api/buildings/at`), highlighting it at once
 - `components/map/MapTip.tsx` — hover card (rAF-batched store `setTip`, framer-motion glide)
 - `components/map/shapes.ts` — `buildShapes` (label point and camera frame per district), `insideDistrict`, `clusterByDistance`
 - `components/map/shapes.test.ts` — self-check (`npx tsx components/map/shapes.test.ts`)
 - `components/providers.tsx` — next-themes, `MotionConfig reducedMotion="user"`, sonner `Toaster`
-- `components/ThemeToggle.tsx` — round sun/moon button; `theme:switch` + `waits`: the map switches under a still of itself, then `theme-fading` on `<html>` eases every colour (CSS in globals.css) while the still fades; exports `ThemeSwitchDetail`
+- `components/ThemeToggle.tsx` — round sun/moon button; `theme:switch` + `waits` (the map redraws hidden under a still), then the circular View Transition reveal of page and map together; exports `ThemeSwitchDetail`
 - `components/Splash.tsx` — §5.10 splash (CSS bar, finishes on `map:ready`, 700 ms–6 s; hidden on /bill, /changes, /report, /me)
 - `components/PageLoading.tsx` — `PageLoading` (title + delayed shimmer cards) and `PanelSkeleton`
 - `components/flows/api.ts` — `api()` typed JSON fetch (errors → Russian toast + `null`), `readAsDataUrl`

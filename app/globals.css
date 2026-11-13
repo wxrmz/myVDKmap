@@ -149,19 +149,11 @@ details[open]::details-content {
   block-size: auto;
 }
 
-/* Theme switch: every colour eases to the new theme while ThemeToggle holds this class (the map crossfades itself).
-   Beats next-themes' «transition: none !important» by specificity. */
-html.theme-fading,
-html.theme-fading *,
-html.theme-fading *::before,
-html.theme-fading *::after {
-  /* Colours only: icons follow `color`; shadows and outlines would make every frame repaint far more. */
-  transition: background-color 450ms ease-in-out, color 450ms ease-in-out, border-color 450ms ease-in-out !important;
-}
-/* The map's still (MapView) fades with the page; more specific than the rule above, which would drop its opacity fade. */
-.map-still,
-html.theme-fading canvas.map-still {
-  transition: opacity 450ms ease-in-out !important;
+/* Theme switch: circular reveal is driven from ThemeToggle via WAAPI. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 /* Splash (§5.10): CSS so it animates before JS loads. */
