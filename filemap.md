@@ -1,6 +1,7 @@
 # filemap
 
 - `START_PROMPT.md` — normative product spec (§N)
+- `README.md` — project overview and run instructions (RU)
 - `CLAUDE.md` — agent rules and commands
 - `docs/SPEC.md` — decisions on top of START_PROMPT
 - `docs/PLAN.md` — task list and status
