@@ -1,7 +1,7 @@
 // Cabinet data (§5.8): kept in localStorage (`vdk-cabinet`), synced with `/api/cabinet/data` after login.
 // No React here: the API route imports the schema; hooks live in components/cabinet/shared.tsx.
 import { z } from "zod";
-import { ISSUE_CATEGORIES } from "@/lib/types";
+import { BILL_KINDS, ISSUE_CATEGORIES, ISSUE_KINDS } from "@/lib/types";
 
 const KEY = "vdk-cabinet";
 export const CABINET_EVENT = "cabinet:changed";
@@ -22,6 +22,8 @@ const IssueEntry = z.object({
 });
 const BillEntry = z.object({
   id,
+  /** Missing on bills saved before receipts were split: those were combined housing receipts. */
+  kind: z.enum(BILL_KINDS).optional(),
   period: z.string().max(7).optional(),
   total: z.number(),
   buildingId: id.optional(),
@@ -36,6 +38,7 @@ const Draft = z.object({
   step: z.number().int().min(0).max(3),
   photo: z.string().max(600_000).optional(),
   text: z.string().max(5000),
+  kind: z.enum(ISSUE_KINDS).optional(),
   address: z.string().max(300).optional(),
   buildingId: id.optional(),
   lat: z.number().optional(),

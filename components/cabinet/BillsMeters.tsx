@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DEFAULT_SETTINGS, METER_KINDS, updateCabinet, type MeterKind } from "@/lib/cabinet";
+import { BILL_KIND_LABELS, BILL_KINDS } from "@/lib/types";
 import { cn, norm } from "@/lib/utils";
 import { CabinetSection, dayLabel, Empty, monthLabel, rub, useHouseSummaries, useCabinet } from "./shared";
 
@@ -16,7 +17,9 @@ const isCapRepair = (name: string) => /капремонт|капитальн/.te
 export function BillsSection() {
   const { bills, houses } = useCabinet();
   const sorted = [...bills].sort((a, b) => (b.period ?? "").localeCompare(a.period ?? ""));
-  const latest = sorted[0];
+  const groups = BILL_KINDS.map((k) => ({ kind: k, bills: sorted.filter((b) => (b.kind ?? "housing") === k) })).filter((g) => g.bills.length);
+  // Neighbours' bills in the DB are combined housing receipts: compare only with those.
+  const latest = groups.find((g) => g.kind === "housing")?.bills[0];
   const summaries = useHouseSummaries(latest ? [latest.buildingId ?? houses[0]].filter(Boolean) : []);
   const neighbours = summaries?.[0];
   const sameMonth = neighbours?.bills.filter((b) => b.period === latest?.period) ?? [];
@@ -26,24 +29,29 @@ export function BillsSection() {
   return (
     <>
       <CabinetSection title="Мои квитанции">
-        {sorted.length ? (
-          <ul className="flex flex-col divide-y divide-border">
-            {sorted.map((b) => (
-              <li key={b.id} className="flex items-center gap-3 py-2.5">
-                <span className="flex-1 font-medium">{b.period ? monthLabel(b.period) : "Без периода"}</span>
-                <span className="font-medium tabular-nums">{rub(b.total)}</span>
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label="Удалить квитанцию"
-                  onClick={() => updateCabinet((c) => ({ ...c, bills: c.bills.filter((x) => x.id !== b.id) }))}
-                  className="rounded-full"
-                >
-                  <Trash2 />
-                </Button>
-              </li>
-            ))}
-          </ul>
+        {groups.length ? (
+          groups.map((g) => (
+            <div key={g.kind} className="flex flex-col">
+              <h3 className="pt-1 text-sm font-medium text-muted-foreground">{BILL_KIND_LABELS[g.kind]}</h3>
+              <ul className="flex flex-col divide-y divide-border">
+                {g.bills.map((b) => (
+                  <li key={b.id} className="flex items-center gap-3 py-2.5">
+                    <span className="flex-1 font-medium">{b.period ? monthLabel(b.period) : "Без периода"}</span>
+                    <span className="font-medium tabular-nums">{rub(b.total)}</span>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label="Удалить квитанцию"
+                      onClick={() => updateCabinet((c) => ({ ...c, bills: c.bills.filter((x) => x.id !== b.id) }))}
+                      className="rounded-full"
+                    >
+                      <Trash2 />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
         ) : (
           <Empty>
             Сохранённых квитанций нет.{" "}

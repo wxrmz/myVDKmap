@@ -4,7 +4,7 @@ import { apiError, parseBody, serverError } from "@/lib/ai/http";
 import { prisma } from "@/lib/db";
 import { getIssues, toIssueDTO } from "@/lib/queries";
 import { ensureOsmBuilding } from "@/lib/search";
-import { ISSUE_CATEGORIES } from "@/lib/types";
+import { ISSUE_CATEGORIES, ISSUE_KINDS } from "@/lib/types";
 
 const OUTSIDE = "Точка за пределами Владивостока";
 
@@ -12,6 +12,7 @@ const IssueInput = z.object({
   buildingId: z.string().min(1).optional(),
   lat: z.number({ error: "Укажите точку на карте" }).min(42.9, OUTSIDE).max(43.4, OUTSIDE),
   lng: z.number({ error: "Укажите точку на карте" }).min(131.7, OUTSIDE).max(132.3, OUTSIDE),
+  kind: z.enum(ISSUE_KINDS, { error: "Выберите тип: авария, обращение или прочее" }).default("appeal"),
   category: z.enum(ISSUE_CATEGORIES, { error: "Выберите категорию из списка" }),
   title: z.string({ error: "Добавьте заголовок" }).trim().min(1, "Добавьте заголовок").max(200, "Заголовок длиннее 200 символов"),
   description: z.string({ error: "Опишите проблему" }).trim().min(1, "Опишите проблему").max(5000, "Описание длиннее 5000 символов"),

@@ -5,8 +5,7 @@ export const complexHref = (districtId: string, complexId: string) => `/d/${dist
 export const houseHref = (buildingId: string) => `/house/${buildingId}`;
 export const workHref = (workId: string) => `/changes?work=${encodeURIComponent(workId)}`;
 
-export const issueHref = (issue: { id: string; buildingId: string | null }) =>
-  issue.buildingId ? `${houseHref(issue.buildingId)}?issue=${encodeURIComponent(issue.id)}` : null;
+export const issueHref = (id: string) => `/issue/${encodeURIComponent(id)}`;
 
 /** «Фрегат» → «ЖК «Фрегат»»; a name that already has quotes or the prefix is not wrapped again. */
 export function complexLabel(name: string) {

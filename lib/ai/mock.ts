@@ -5,7 +5,7 @@ import { DEMO_DOCUMENTS } from "@/lib/fixtures/documents";
 import { plural } from "@/lib/health";
 import { getAuthorities, getDistrict, getDistrictStats } from "@/lib/queries";
 import { getWorkStreets, streetPattern } from "@/lib/search";
-import { ISSUE_CATEGORY_LABELS, type BillItem, type IssueCategory, type WorkKind } from "@/lib/types";
+import { ISSUE_CATEGORY_LABELS, type BillItem, type BillKind, type IssueCategory, type WorkKind } from "@/lib/types";
 import { norm } from "@/lib/utils";
 import type { BillInput, BillOutput, BillRaw, ClassifyInput, ClassifyOutput, DigestOutput, DocSummary } from "./schemas";
 
@@ -141,7 +141,8 @@ function parseBillText(text: string): BillRaw {
     }
     if (!money || SKIP_LINE.test(l)) continue;
     const parts = line.split("|").map((p) => p.trim());
-    const name = (parts.length > 1 ? parts[0] : line.slice(0, money.index)).replace(/[\s.…:–—-]+$/, "").trim();
+    // Without «|» the name ends before the first number standing apart (volume, area, tariff): «Взнос … 54,30 м² × 12,00 651,60».
+    const name = (parts.length > 1 ? parts[0] : line.slice(0, money.index).replace(/\s\d[\s\S]*$/, "")).replace(/[\s.…:–—-]+$/, "").trim();
     if (!/\p{L}/u.test(name)) continue;
     const item: BillItem = { name, amount: num(money[1]) };
     const use = /([\d.,]+)\s*(\S+)?\s*[×x*]\s*([\d\s.,]+?)\s*(?:₽|руб\.?)?$/.exec(parts.length > 2 ? parts.slice(1, -1).join(" ") : "");
@@ -166,12 +167,15 @@ const actionFor = (name: string) =>
 
 const money = (n: number) => n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** Plain names, history of the house and «what changed and what to do» for recognised receipt lines. */
-export async function analyzeBill(raw: BillRaw, buildingId = DEMO_BUILDING_ID): Promise<BillOutput> {
-  const rows = await prisma.bill.findMany({ where: { buildingId }, orderBy: { period: "asc" } });
+/**
+ * Plain names, history of the house and «what changed and what to do» for recognised receipt lines.
+ * The house history is made of combined housing receipts, so other kinds (capital repair, power) are not compared with it.
+ */
+export async function analyzeBill(raw: BillRaw, buildingId = DEMO_BUILDING_ID, kind: BillKind = "housing"): Promise<BillOutput> {
+  const rows = kind === "housing" ? await prisma.bill.findMany({ where: { buildingId }, orderBy: { period: "asc" } }) : [];
   const history: { period: string; items: BillItem[]; total: number }[] = rows.length
     ? rows.map((b) => ({ period: b.period, items: JSON.parse(b.items) as BillItem[], total: b.total }))
-    : buildingId === DEMO_BUILDING_ID
+    : kind === "housing" && buildingId === DEMO_BUILDING_ID
       ? DEMO_BILLS
       : [];
   const earlier = history.filter((b) => !raw.period || b.period < raw.period);
@@ -229,10 +233,11 @@ const latestDemoBill = (): BillRaw => {
   return { period, items, total };
 };
 
-export async function parseBill({ buildingId, text, demo }: BillInput): Promise<BillOutput> {
-  // The mock cannot read photos or PDFs: an uploaded file (and the «Пример квитанции» button) gets the demo receipt.
-  if (demo || !text) return analyzeBill(latestDemoBill(), DEMO_BUILDING_ID);
-  return analyzeBill(parseBillText(text), buildingId ?? DEMO_BUILDING_ID);
+/** Null when there is nothing the mock can read: a photo (only the model sees it) or a PDF without a text layer. */
+export async function parseBill({ buildingId, text, demo, kind = "housing" }: Partial<BillInput>): Promise<BillOutput | null> {
+  if (demo) return analyzeBill(latestDemoBill(), DEMO_BUILDING_ID);
+  if (!text) return null;
+  return analyzeBill(parseBillText(text), buildingId ?? DEMO_BUILDING_ID, kind);
 }
 
 // ---------------------------------------------------------------- summarizeDocument

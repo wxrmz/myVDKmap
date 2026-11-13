@@ -14,6 +14,7 @@ import type {
   DistrictStatsDTO,
   DistrictWithCountsDTO,
   IssueCategory,
+  IssueKind,
   IssueDTO,
   IssueStatus,
   MapComplexDTO,
@@ -29,6 +30,7 @@ export const toIssueDTO = (i: Issue, address?: string): IssueDTO => ({
   buildingId: i.buildingId,
   lat: i.lat,
   lng: i.lng,
+  kind: i.kind as IssueKind,
   category: i.category as IssueCategory,
   title: i.title,
   description: i.description,
@@ -179,6 +181,14 @@ export async function getIssues(filter: { buildingId?: string } = {}): Promise<I
     orderBy: { createdAt: "desc" },
   });
   return rows.map(({ building, ...i }) => toIssueDTO(i, building?.address));
+}
+
+/** One issue with its house address, or null. */
+export async function getIssue(id: string): Promise<IssueDTO | null> {
+  const row = await prisma.issue.findUnique({ where: { id }, include: { building: { select: { address: true } } } });
+  if (!row) return null;
+  const { building, ...issue } = row;
+  return toIssueDTO(issue, building?.address);
 }
 
 export async function getCityWorks(): Promise<CityWorkDTO[]> {

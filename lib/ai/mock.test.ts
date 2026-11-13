@@ -51,14 +51,19 @@ async function main() {
   assert.ok(demo.items.every((i) => i.plainName && i.explanation));
   assert.ok(demo.history.length >= 3 && demo.history.at(-1)!.period === demo.period);
 
-  const fromText = await parseBill({ text: DEMO_BILL_TEXTS["2026-11"] });
+  const fromText = (await parseBill({ text: DEMO_BILL_TEXTS["2026-11"] }))!;
   assert.equal(fromText.period, "2026-11");
   assert.equal(fromText.items.length, DEMO_BILLS.at(-1)!.items.length);
   assert.equal(fromText.total, DEMO_BILLS.at(-1)!.total);
   assert.deepEqual(fromText.changes, demo.changes);
-  const loose = await parseBill({ text: "Холодная вода ........ 320,64 руб.\nДомофон — 60,00\nИтого: 380,64" });
+  const loose = (await parseBill({ text: "Холодная вода ........ 320,64 руб.\nДомофон — 60,00\nИтого: 380,64" }))!;
   assert.deepEqual(loose.items.map((i) => [i.name, i.amount]), [["Холодная вода", 320.64], ["Домофон", 60]]);
   assert.equal(loose.total, 380.64);
+  // A photo is not replaced by the demo receipt; a capital repair receipt shows only its own line, with no ЖКУ history.
+  assert.equal(await parseBill({ image: "data:image/png;base64,AAAA" }), null);
+  const capital = (await parseBill({ kind: "capital", text: "Период: ноябрь 2026\nВзнос на капитальный ремонт 54,30 м² × 12,00 651,60\nИтого к оплате: 651,60" }))!;
+  assert.deepEqual(capital.items.map((i) => [i.name, i.amount]), [["Взнос на капитальный ремонт", 651.6]]);
+  assert.deepEqual([capital.changes, capital.history], [[], [{ period: "2026-11", total: 651.6 }]]);
 
   // --- houseNumbers ---
   assert.deepEqual(houseNumbers(", д. 5"), ["5"]);

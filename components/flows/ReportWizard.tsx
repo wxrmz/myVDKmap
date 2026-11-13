@@ -15,7 +15,7 @@ import { SearchBox } from "@/components/search/SearchBox";
 import type { ClassifyOutput } from "@/lib/ai/schemas";
 import { getCabinet, updateCabinet } from "@/lib/cabinet";
 import { houseHref, issueHref } from "@/lib/nav";
-import { ISSUE_CATEGORY_LABELS, type IssueDTO } from "@/lib/types";
+import { ISSUE_CATEGORY_LABELS, ISSUE_KIND_LABELS, ISSUE_KINDS, type IssueDTO, type IssueKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { api, readAsDataUrl } from "./api";
 import { FlowHeader } from "./FlowHeader";
@@ -27,6 +27,11 @@ const MAX_PHOTO = 6 * 1024 * 1024;
 const MAX_DRAFT_PHOTO = 600_000;
 const POS_URL = "https://pos.gosuslugi.ru/";
 const SEVERITY = { 1: "Не срочно", 2: "Важно", 3: "Опасно" } as const;
+const KIND_HINTS: Record<IssueKind, string> = {
+  accident: "Прорыв трубы, нет света, опасно",
+  appeal: "Нужно исправить, но не срочно",
+  other: "Предложение или вопрос",
+};
 
 interface Address {
   label: string;
@@ -42,7 +47,9 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
   const [step, setStep] = useState(0);
   const [photo, setPhoto] = useState<string>();
   const [text, setText] = useState("");
-  const [address, setAddress] = useState<Address | undefined>(fromHouse);
+  const [kind, setKind] = useState<IssueKind>("appeal");
+  // Never preset from the passport: the resident confirms the house or picks another place on the address step.
+  const [address, setAddress] = useState<Address | undefined>();
   const [picking, setPicking] = useState(false);
   const [result, setResult] = useState<ClassifyOutput | null>(null);
   const [busy, setBusy] = useState(false);
@@ -61,18 +68,17 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
       : { level: "city" },
   );
 
-  // Restore the draft once after hydration; an address from `?building=` wins over the draft's.
+  // Restore the draft once after hydration.
   useEffect(() => {
     restored.current = true;
     const d = getCabinet().draft;
     if (!d) return;
     setPhoto(d.photo);
     setText(d.text);
-    if (!fromHouse && d.address && d.lat !== undefined && d.lng !== undefined)
+    if (d.kind) setKind(d.kind);
+    if (d.address && d.lat !== undefined && d.lng !== undefined)
       setAddress({ label: d.address, buildingId: d.buildingId, lat: d.lat, lng: d.lng });
     setStep(Math.min(d.step, 2));
-    // mount only: later prop changes do not reload the draft
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -84,13 +90,14 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
         step,
         photo: photo && photo.length <= MAX_DRAFT_PHOTO ? photo : undefined,
         text,
+        kind,
         address: address?.label,
         buildingId: address?.buildingId,
         lat: address?.lat,
         lng: address?.lng,
       },
     }));
-  }, [step, photo, text, address, saved]);
+  }, [step, photo, text, kind, address, saved]);
 
   // Point on the map: the sheet steps aside on phones, a bar explains what to do.
   useEffect(() => {
@@ -133,6 +140,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
         buildingId: address.buildingId,
         lat: address.lat,
         lng: address.lng,
+        kind,
         category: result.category,
         title: result.title,
         description: text.trim() || result.title,
@@ -169,7 +177,8 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
     setResult(null);
     setPhoto(undefined);
     setText("");
-    setAddress(fromHouse);
+    setKind("appeal");
+    setAddress(undefined);
     setStep(0);
   }
 
@@ -219,7 +228,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
               <p className="text-muted-foreground">«{saved.title}» сохранена и появилась в кабинете, в разделе «Обращения».</p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild className="h-11 rounded-xl">
-                  <Link href={issueHref(saved) ?? "/"} prefetch>
+                  <Link href={issueHref(saved.id)} prefetch>
                     <MapPin /> Показать на карте
                   </Link>
                 </Button>
@@ -272,6 +281,24 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
           ) : step === 1 ? (
             <>
               <h2 className="text-lg font-semibold">Что случилось?</h2>
+              <div role="radiogroup" aria-label="Тип" className="grid grid-cols-3 gap-2">
+                {ISSUE_KINDS.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="radio"
+                    aria-checked={kind === k}
+                    onClick={() => setKind(k)}
+                    className={cn(
+                      "flex flex-col gap-0.5 rounded-xl p-3 text-left ring-1 transition-colors",
+                      kind === k ? "bg-foreground text-background ring-foreground" : "bg-card ring-border hover:bg-muted",
+                    )}
+                  >
+                    <span className="font-medium">{ISSUE_KIND_LABELS[k]}</span>
+                    <span className={cn("text-xs", kind === k ? "text-background/70" : "text-muted-foreground")}>{KIND_HINTS[k]}</span>
+                  </button>
+                ))}
+              </div>
               <Textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -286,6 +313,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
           ) : step === 2 ? (
             <>
               <h2 className="text-lg font-semibold">Где это?</h2>
+              <p className="text-sm text-muted-foreground">Найдите дом по адресу или нажмите на карту — проблема встанет ровно туда.</p>
               {address && (
                 <div className="panel-box flex items-center gap-3">
                   <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted ring-1 ring-border">
@@ -297,7 +325,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
               )}
               {fromHouse && address?.buildingId !== fromHouse.buildingId && (
                 <Button variant="outline" className="h-11 justify-start rounded-xl" onClick={() => setAddress(fromHouse)}>
-                  <House /> Из паспорта: {fromHouse.label}
+                  <House /> Этот дом: {fromHouse.label}
                 </Button>
               )}
               <SearchBox inputId="report-address" onSelect={(r) => setAddress({ label: r.title, buildingId: r.id, lat: r.lat, lng: r.lng })} />
@@ -321,6 +349,8 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
                     </div>
                     <p className="text-lg font-semibold">{result.title}</p>
                     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                      <dt className="text-muted-foreground">Тип</dt>
+                      <dd className="font-medium">{ISSUE_KIND_LABELS[kind]}</dd>
                       <dt className="text-muted-foreground">Кто отвечает</dt>
                       <dd className="font-medium">{authority}</dd>
                       <dt className="text-muted-foreground">Адрес</dt>

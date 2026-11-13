@@ -17,7 +17,7 @@ const FLOWS = [
 ];
 const CABINET = { href: "/me", label: "Кабинет", Icon: CircleUser };
 
-export const isMapPath = (p: string) => p === "/" || p.startsWith("/d/") || p.startsWith("/house/");
+export const isMapPath = (p: string) => p === "/" || p.startsWith("/d/") || p.startsWith("/house/") || p.startsWith("/issue/");
 const isActive = (href: string, p: string) => (href === "/" ? isMapPath(p) : p === href || p.startsWith(`${href}/`));
 
 const itemClass = (active: boolean) =>

@@ -96,9 +96,9 @@ export async function classifyIssue(input: ClassifyInput): Promise<ClassifyOutpu
   return answer ?? mock.classifyIssue(input);
 }
 
-export async function parseBill(input: BillInput): Promise<BillOutput> {
+export async function parseBill(input: BillInput): Promise<BillOutput | null> {
   const image = input.image && RASTER.test(input.image) ? input.image : null;
-  if (input.demo || (!input.text && !image)) return mock.parseBill(input); // demo receipt, or a PDF the model cannot see
+  if (input.demo || (!input.text && !image)) return mock.parseBill(input); // demo receipt, or a file nobody can read
   const system = [
     "Ты распознаёшь российскую квитанцию ЖКХ (единый платёжный документ).",
     "Ответь только JSON-объектом: {\"period\": \"YYYY-MM\", \"items\": [{\"name\", \"amount\", \"unit\", \"volume\", \"tariff\"}], \"total\"}.",
@@ -115,7 +115,7 @@ export async function parseBill(input: BillInput): Promise<BillOutput> {
     !!image,
   );
   // Plain names, history and changes are computed from our own data, never by the model.
-  return raw ? mock.analyzeBill(raw, input.buildingId) : mock.parseBill(input);
+  return raw ? mock.analyzeBill(raw, input.buildingId, input.kind) : mock.parseBill(input);
 }
 
 export async function summarizeDocument(text: string): Promise<DocSummary> {

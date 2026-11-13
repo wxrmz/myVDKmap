@@ -1,7 +1,7 @@
 # filemap
 
 - `START_PROMPT.md` — normative product spec (§N)
-- `middleware.ts` — every full page load redirects to `/` (start page), except `/house/…`
+- `middleware.ts` — every full page load redirects to `/` (start page), except `/house/…` and `/issue/…`
 - `README.md` — project overview and run instructions (RU)
 - `CLAUDE.md` — agent rules and commands
 - `docs/SPEC.md` — decisions on top of START_PROMPT
@@ -12,8 +12,9 @@
 - `app/(map)/page.tsx` — `/`: `CityPanel`
 - `app/(map)/d/[district]/page.tsx` — `/d/[district]`: `DistrictPanel` (404 for unknown district)
 - `app/(map)/d/[district]/c/[complex]/page.tsx` — complex page: `ComplexCard`; wrong district in the URL → redirect to the canonical one
-- `app/(map)/house/[id]/page.tsx` — house passport; `osm-…` that resolves to another id → redirect to the canonical id (keeps `?issue=`)
+- `app/(map)/house/[id]/page.tsx` — house passport; `osm-…` that resolves to another id → redirect to the canonical id
 - `app/(map)/**/loading.tsx` — `PanelSkeleton` for each map page; `PageLoading` for the flow pages
+- `app/(map)/issue/[id]/page.tsx` — one issue (`IssuePanel`); every issue link (map pin, passport, cabinet) opens it
 - `app/(map)/report/page.tsx` — `/report[?building=]`: `ReportWizard` (authorities, house from the passport)
 - `app/(map)/bill/page.tsx` — `/bill[?building=]`: `BillAnalyzer`
 - `app/(map)/changes/page.tsx` — `/changes[?building=&work=]`: `WorksFeed` (+ `getWorkStreets`) and `DocumentParser`
@@ -28,13 +29,13 @@
 - `components/panel/AiDigest.tsx` — district digest from `/api/ai/digest` (hidden on error)
 - `components/panel/BuildingLink.tsx` — house row (address, floors if known, open issues)
 - `components/panel/badges.tsx` — `IssueStatusBadge`, `ComplexStatusBadge`
-- `components/panel/CloseButton.tsx` — top-right cross of district, ЖК and house panels (goes one level up)
+- `components/panel/CloseButton.tsx` — top-right cross of district, ЖК, house and issue panels (goes one level up)
+- `components/panel/IssuePanel.tsx` — issue page: kind, category, status, photo, description, place, «Меня тоже касается», appeal text
 - `components/house/HousePassport.tsx` — passport §5.4: header, health, sections, ГИС ЖКХ and capital-repair fund links, actions
 - `components/house/HealthRing.tsx` — health ring 0–100 with breakdown
 - `components/house/Section.tsx` — passport block in `panel-box`
 - `components/house/CabinetButtons.tsx` — `SaveHouseButton`, `SupportButton` («Меня тоже касается» → POST support)
 - `components/house/ShareButton.tsx` — `navigator.share` or copy link + toast
-- `components/house/Spotlight.tsx` — highlighted issue row scrolled to center (`?issue=`)
 - `components/map/MapContext.tsx` — `MapProvider`, `useMap`, `useMapScene`; types `MapData`, `MapScene`, `MapLevel`, `MapLayers`, `MapInsets`; issues refetch on `issues:changed`
 - `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, `theme:switch`, `map:ready`, `map:click` (point for the report wizard; navigation off while picking), 2GIS building selection
 - `components/map/MapTip.tsx` — hover card (rAF-batched store `setTip`, framer-motion glide)
@@ -46,8 +47,8 @@
 - `components/PageLoading.tsx` — `PageLoading` (title + delayed shimmer cards) and `PanelSkeleton`
 - `components/flows/api.ts` — `api()` typed JSON fetch (errors → Russian toast + `null`), `readAsDataUrl`
 - `components/flows/FlowHeader.tsx` — flow page title row with a close link
-- `components/flows/ReportWizard.tsx` — §5.5 wizard (photo, description, address: passport / search / map point, AI result, save → `issues:changed` + cabinet); draft in the cabinet
-- `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis (demo, file, text), lines, recharts monthly chart, changes, save to cabinet
+- `components/flows/ReportWizard.tsx` — §5.5 wizard (photo, kind + description, address: «этот дом» / search / map point — never preset, AI result, save → `issues:changed` + cabinet); draft in the cabinet
+- `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis, one tab per receipt kind (коммуналка / капремонт / электроэнергия / другая; demo only for коммуналка), lines, recharts monthly chart, changes, save to cabinet
 - `components/flows/WorksFeed.tsx` — §5.7 feed: groups, `isDone`, `?building=` first, `?work=` highlight/scroll/open group
 - `components/flows/WorksSearch.tsx` — street field, street chips, «Найдено работ: N»
 - `components/flows/DocumentParser.tsx` — «Разобрать свой документ» via `/api/ai/document`

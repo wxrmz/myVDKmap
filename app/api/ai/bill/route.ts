@@ -8,6 +8,14 @@ export async function POST(req: Request) {
     const body = await parseBody(req, BillInputSchema);
     if (body instanceof NextResponse) return body;
     const bill = await parseBill(body);
+    if (!bill) {
+      return apiError(
+        422,
+        body.image?.startsWith("data:application/pdf")
+          ? "Не получилось прочитать текст из PDF. Скопируйте текст квитанции и вставьте его в поле ниже"
+          : "Фото квитанции сейчас прочитать не можем: ИИ не подключён. Загрузите PDF или вставьте текст квитанции",
+      );
+    }
     if (!bill.items.length) {
       return apiError(422, "Не нашли в тексте строк квитанции. Вставьте текст целиком или попробуйте пример квитанции");
     }

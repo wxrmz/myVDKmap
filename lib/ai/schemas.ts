@@ -1,6 +1,6 @@
 // zod schemas of the AI layer (§6.1): route inputs and validated outputs of every provider.
 import { z } from "zod";
-import { ISSUE_CATEGORIES, WORK_KINDS } from "@/lib/types";
+import { BILL_KINDS, ISSUE_CATEGORIES, WORK_KINDS } from "@/lib/types";
 
 const PHOTO = /^(data:image\/[\w.+-]+;base64,|\/(?!\/))/; // a data URL, or a site path such as the demo photo
 const BILL_FILE = /^data:(image\/[\w.+-]+|application\/pdf);base64,/;
@@ -35,6 +35,7 @@ export type ClassifyOutput = z.infer<typeof ClassifyOutputSchema>;
 export const BillInputSchema = z
   .object({
     buildingId: z.string().min(1).optional(),
+    kind: z.enum(BILL_KINDS, { error: "Выберите, какая это квитанция" }).default("housing"),
     image: z.string().regex(BILL_FILE, "Загрузите фото или PDF квитанции").optional(),
     text: z.string().trim().max(20000, "Текст длиннее 20 000 символов").optional(),
     demo: z.boolean().optional(),

@@ -156,7 +156,7 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
   };
   const hide = () => {
     onMarker = false;
-    setTip(null, true);
+    setTip(null);
   };
   map.on("movestart", hide);
   // The report wizard listens for this to take a point on the map (§5.5).
@@ -177,12 +177,6 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
     marker(target: TipTarget | null, el?: HTMLElement) {
       onMarker = target !== null;
       setTip(target && el ? { target, ...centerOf(el) } : districtTip());
-    },
-    /** Navigates, or pins the tip when there is nowhere to go (an issue without a house). */
-    open(href: string | null, target: TipTarget, el: HTMLElement) {
-      if (picking()) return;
-      if (href) latest.current.push(href);
-      else setTip({ target, ...centerOf(el), pinned: true });
     },
     /** District polygons swallow the map click: they forward the point while a point is being picked. */
     point,
@@ -409,22 +403,23 @@ function Marker({
   const [el] = useState(() => document.createElement("div"));
   const { lat, lng } = at;
   // Layout effect: its cleanup runs before React empties the portal, so the content can be snapshotted for the exit fade.
+  // Each run wraps `el` in its own host: the fading ghost replaces `el` in the old host only, never React's nodes inside `el`
+  // (a re-run while mounted — a cluster whose center moved — must not touch the portal).
   useLayoutEffect(() => {
-    const marker = new api.gl.HtmlMarker(api.map, { coordinates: [lng, lat], html: el, zIndex: z, interactive, maxZoom });
+    const host = document.createElement("div");
+    host.append(el);
+    const marker = new api.gl.HtmlMarker(api.map, { coordinates: [lng, lat], html: host, zIndex: z, interactive, maxZoom });
     return () => {
       if (matchMedia("(prefers-reduced-motion: reduce)").matches) return marker.destroy();
-      const ghost = [...el.childNodes].map((n) => n.cloneNode(true));
-      queueMicrotask(() => {
-        el.replaceChildren(...ghost);
-        el.style.pointerEvents = "none";
-        // 2GIS positions `el` with its own transform, so the fade runs on the content inside it.
-        const target = (el.firstElementChild?.firstElementChild ?? el.firstElementChild ?? el) as HTMLElement;
-        target.animate([{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(0.5)" }], {
-          duration: 200,
-          easing: "ease-in",
-          fill: "forwards",
-        }).finished.finally(() => marker.destroy());
-      });
+      host.replaceChildren(...[...el.childNodes].map((n) => n.cloneNode(true)));
+      host.style.pointerEvents = "none";
+      // 2GIS positions `host` with its own transform, so the fade runs on the content inside it.
+      const target = (host.firstElementChild?.firstElementChild ?? host.firstElementChild ?? host) as HTMLElement;
+      target.animate([{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(0.5)" }], {
+        duration: 200,
+        easing: "ease-in",
+        fill: "forwards",
+      }).finished.finally(() => marker.destroy());
     };
   }, [api, el, lat, lng, z, interactive, maxZoom]);
   return createPortal(<div className="-translate-x-1/2 -translate-y-1/2">{children}</div>, el);
@@ -582,7 +577,7 @@ const Markers = memo(function Markers({
                 z={3}
                 label={first.title}
                 tip={target}
-                onClick={(el) => api.ui.open(issueHref(first), target, el)}
+                onClick={() => api.ui.go(issueHref(first.id))}
                 className="p-1.5"
               >
                 <span className="block size-3 rounded-full bg-coral shadow ring-2 ring-card" />

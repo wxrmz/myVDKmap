@@ -36,6 +36,21 @@ export const ISSUE_CATEGORY_LABELS: Record<IssueCategory, string> = {
   other: "Другое",
 };
 
+/** What the resident says it is: an emergency, an ordinary appeal, or something else. */
+export const ISSUE_KINDS = ["accident", "appeal", "other"] as const;
+export type IssueKind = (typeof ISSUE_KINDS)[number];
+export const ISSUE_KIND_LABELS: Record<IssueKind, string> = { accident: "Авария", appeal: "Обращение", other: "Прочее" };
+
+/** Separate receipts a flat gets: each one is read and kept on its own. */
+export const BILL_KINDS = ["housing", "capital", "power", "other"] as const;
+export type BillKind = (typeof BILL_KINDS)[number];
+export const BILL_KIND_LABELS: Record<BillKind, string> = {
+  housing: "Коммуналка",
+  capital: "Капремонт",
+  power: "Электроэнергия",
+  other: "Другая",
+};
+
 export const ISSUE_STATUSES = ["new", "sent", "in_progress", "resolved"] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 export const ISSUE_STATUS_LABELS: Record<IssueStatus, string> = {
@@ -122,6 +137,7 @@ export interface IssueDTO {
   buildingId: string | null;
   lat: number;
   lng: number;
+  kind: IssueKind;
   category: IssueCategory;
   title: string;
   description: string;

@@ -141,18 +141,13 @@ export function IssuesSection() {
         {issues.length ? (
           <ul className="flex flex-col divide-y divide-border">
             {[...issues].reverse().map((i) => {
-              const href = issueHref(i);
               return (
                 <li key={i.id} className="flex items-start gap-3 py-3">
                   <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-coral" />
                   <div className="flex min-w-0 flex-col gap-0.5">
-                    {href ? (
-                      <Link href={href} prefetch className="font-medium underline-offset-4 hover:underline">
-                        {i.title}
-                      </Link>
-                    ) : (
-                      <span className="font-medium">{i.title}</span>
-                    )}
+                    <Link href={issueHref(i.id)} prefetch className="font-medium underline-offset-4 hover:underline">
+                      {i.title}
+                    </Link>
                     <span className="text-sm text-muted-foreground">
                       {ISSUE_CATEGORY_LABELS[i.category]} · {i.address} · {dayLabel(i.createdAt)}
                     </span>

@@ -11,25 +11,32 @@ import { monthLabel, rub, useCabinet } from "@/components/cabinet/shared";
 import type { BillOutput } from "@/lib/ai/schemas";
 import { updateCabinet } from "@/lib/cabinet";
 import { houseHref } from "@/lib/nav";
+import { BILL_KIND_LABELS, BILL_KINDS, type BillKind } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { api, readAsDataUrl } from "./api";
 import { FlowHeader } from "./FlowHeader";
 
 // Base64 grows the file by a third; the API takes up to 8 MB.
 const MAX_FILE = 5 * 1024 * 1024;
 
-const billId = (b: BillOutput) => `bill-${b.period ?? "unknown"}-${b.total}`;
+const billId = (kind: BillKind, b: BillOutput) => `bill-${kind}-${b.period ?? "unknown"}-${b.total}`;
 
 export function BillAnalyzer({ house }: { house: { id: string; address: string } | null }) {
-  const [text, setText] = useState("");
-  const [bill, setBill] = useState<BillOutput | null>(null);
+  // One section per receipt: each keeps its own text and result, so a capital repair receipt never mixes with the ЖКУ one.
+  const [kind, setKind] = useState<BillKind>("housing");
+  const [texts, setTexts] = useState<Partial<Record<BillKind, string>>>({});
+  const [bills, setBills] = useState<Partial<Record<BillKind, BillOutput>>>({});
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const saved = useCabinet().bills.some((b) => bill && b.id === billId(bill));
+  const text = texts[kind] ?? "";
+  const bill = bills[kind] ?? null;
+  const saved = useCabinet().bills.some((b) => bill && b.id === billId(kind, bill));
 
   async function analyze(input: { demo?: true; text?: string; image?: string }) {
+    const k = kind;
     setBusy(true);
-    const res = await api<BillOutput>("/api/ai/bill", { body: { ...input, buildingId: house?.id } });
-    if (res) setBill(res);
+    const res = await api<BillOutput>("/api/ai/bill", { body: { ...input, kind: k, buildingId: house?.id } });
+    if (res) setBills((b) => ({ ...b, [k]: res }));
     setBusy(false);
   }
 
@@ -43,7 +50,8 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
   function save() {
     if (!bill) return;
     const entry = {
-      id: billId(bill),
+      id: billId(kind, bill),
+      kind,
       period: bill.period,
       total: bill.total,
       buildingId: house?.id,
@@ -66,12 +74,34 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
         backHref={house ? houseHref(house.id) : "/"}
       />
 
+      <div role="tablist" aria-label="Какая квитанция" className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 sm:grid-cols-4">
+        {BILL_KINDS.map((k) => (
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={kind === k}
+            onClick={() => setKind(k)}
+            disabled={busy}
+            className={cn(
+              "flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium transition-colors",
+              kind === k ? "bg-card shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {BILL_KIND_LABELS[k]}
+            {bills[k] && <span className="size-1.5 rounded-full bg-turquoise" aria-label="разобрана" />}
+          </button>
+        ))}
+      </div>
+
       <section className="panel-box flex flex-col gap-3">
         <div className="flex flex-wrap gap-2">
-          <Button className="h-11 rounded-xl" onClick={() => analyze({ demo: true })} disabled={busy}>
-            <Sparkles /> Пример квитанции
-          </Button>
-          <Button variant="outline" className="h-11 rounded-xl" onClick={() => fileRef.current?.click()} disabled={busy}>
+          {kind === "housing" && (
+            <Button variant="outline" className="h-11 rounded-xl" onClick={() => analyze({ demo: true })} disabled={busy}>
+              <Sparkles /> Пример квитанции
+            </Button>
+          )}
+          <Button className="h-11 rounded-xl" onClick={() => fileRef.current?.click()} disabled={busy}>
             <FileUp /> Фото или PDF
           </Button>
           <input
@@ -87,7 +117,7 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
         </div>
         <Textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => setTexts((t) => ({ ...t, [kind]: e.target.value }))}
           maxLength={20000}
           rows={4}
           placeholder="Или вставьте текст квитанции: «Холодная вода … 320,64»"
@@ -109,7 +139,10 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
         <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <section className="panel-box flex flex-col gap-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-lg font-semibold">{bill.period ? monthLabel(bill.period) : "Квитанция"}</h2>
+              <h2 className="text-lg font-semibold">
+                {BILL_KIND_LABELS[kind]}
+                {bill.period && <span className="font-normal text-muted-foreground"> · {monthLabel(bill.period).toLowerCase()}</span>}
+              </h2>
               <span className="text-lg font-semibold tabular-nums">{rub(bill.total)}</span>
             </div>
             <ul className="flex flex-col divide-y divide-border">

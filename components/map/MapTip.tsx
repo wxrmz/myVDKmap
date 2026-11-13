@@ -29,7 +29,6 @@ export interface Tip {
   target: TipTarget;
   x: number;
   y: number;
-  pinned?: boolean;
 }
 
 export const TIP_WIDTH = 256;
@@ -65,16 +64,14 @@ function flush() {
   frame = 0;
   const next = queued ?? null;
   queued = undefined;
-  const same = next && shown && keyOf(next.target) === keyOf(shown.target) && !!next.pinned === !!shown.pinned;
+  const same = next && shown && keyOf(next.target) === keyOf(shown.target);
   shown = next;
   if (same && positioner) place(positioner, next, false);
   else listeners.forEach((l) => l());
 }
 
-/** Queues the tip (null hides it); applied once per animation frame. While a tip is pinned only `force` or another pinned tip replace it. */
-export function setTip(tip: Tip | null, force = false) {
-  const current = queued === undefined ? shown : queued;
-  if (current?.pinned && !force && !tip?.pinned) return;
+/** Queues the tip (null hides it); applied once per animation frame. */
+export function setTip(tip: Tip | null) {
   queued = tip;
   frame ||= requestAnimationFrame(flush);
 }

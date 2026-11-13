@@ -8,13 +8,12 @@ import { useMapScene } from "@/components/map/MapContext";
 import { IssueStatusBadge } from "@/components/panel/badges";
 import { CloseButton } from "@/components/panel/CloseButton";
 import { plural } from "@/lib/health";
-import { breadcrumbs, complexHref, complexLabel } from "@/lib/nav";
-import { ISSUE_CATEGORY_LABELS, WORK_KIND_LABELS, type BuildingPassportDTO } from "@/lib/types";
-import { SaveHouseButton, SupportButton } from "./CabinetButtons";
+import { breadcrumbs, complexHref, complexLabel, issueHref } from "@/lib/nav";
+import { ISSUE_CATEGORY_LABELS, ISSUE_KIND_LABELS, WORK_KIND_LABELS, type BuildingPassportDTO } from "@/lib/types";
+import { SaveHouseButton } from "./CabinetButtons";
 import { HealthRing } from "./HealthRing";
 import { Section } from "./Section";
 import { ShareButton } from "./ShareButton";
-import { Spotlight } from "./Spotlight";
 
 const GIS_HOUSES = "https://dom.gosuslugi.ru/#!/houses";
 // shortcut: search link instead of the fund's site — its address could not be confirmed; replace once verified.
@@ -37,7 +36,7 @@ const rub = (n: number) => `${n.toLocaleString("ru-RU", { maximumFractionDigits:
 
 const external = "inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline";
 
-export function HousePassport({ passport, issueId }: { passport: BuildingPassportDTO; issueId?: string }) {
+export function HousePassport({ passport }: { passport: BuildingPassportDTO }) {
   const { building: b, openIssues, resolvedIssues, works, bills, health } = passport;
   useMapScene({
     level: "house",
@@ -152,20 +151,25 @@ export function HousePassport({ passport, issueId }: { passport: BuildingPasspor
         {openIssues.length ? (
           <ul className="-mx-1 flex flex-col gap-1">
             {openIssues.map((i) => (
-              <Spotlight key={i.id} active={i.id === issueId} className="flex flex-col gap-2 px-1 py-2.5">
-                <div className="flex items-start gap-2.5">
+              <li key={i.id}>
+                <Link href={issueHref(i.id)} prefetch className="flex items-start gap-2.5 rounded-xl px-1 py-2.5 transition-colors hover:bg-muted">
                   <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-coral" />
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="font-medium">{i.title}</span>
+                    {i.description !== i.title && <span className="line-clamp-2 text-sm text-muted-foreground">{i.description}</span>}
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                      {ISSUE_CATEGORY_LABELS[i.category]}
+                      {ISSUE_KIND_LABELS[i.kind]} · {ISSUE_CATEGORY_LABELS[i.category]}
                       <IssueStatusBadge status={i.status} />
                       {daysAgo(i.createdAt)}
+                      {i.supports > 0 && <span>· поддержали {i.supports}</span>}
                     </span>
-                    <SupportButton issueId={i.id} supports={i.supports} />
-                  </div>
-                </div>
-              </Spotlight>
+                  </span>
+                  {i.photoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- data URLs and local SVGs, nothing to optimise
+                    <img src={i.photoUrl} alt="" className="size-14 shrink-0 rounded-lg bg-muted object-cover ring-1 ring-border" />
+                  )}
+                </Link>
+              </li>
             ))}
           </ul>
         ) : (
