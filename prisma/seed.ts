@@ -109,6 +109,10 @@ const microdistricts = seed.districts.flatMap((d) =>
   }),
 );
 const microById = new Map(microdistricts.map((m) => [m.id, m]));
+const nearestMicro = (lat: number, lng: number, districtId: string) =>
+  microdistricts
+    .filter((m) => m.districtId === districtId)
+    .sort((a, b) => (a.center[0] - lat) ** 2 + (a.center[1] - lng) ** 2 - ((b.center[0] - lat) ** 2 + (b.center[1] - lng) ** 2))[0];
 
 // --- complexes and their buildings ---
 const singleFloors = (f: string | null | undefined) => (f && /^\d+$/.test(f) ? Number(f) : null);
@@ -121,6 +125,12 @@ const usedOsm = new Set<number>();
 for (const c of seed.residential_complexes) {
   const geo = complexGeo[c.id];
   if (!geo || !microById.has(c.microdistrict)) continue;
+  // A complex belongs to the district its point is in; the seed's microdistrict may lie across a real boundary.
+  const home = districtOf(geo.lat, geo.lng);
+  const microId =
+    home && home !== microById.get(c.microdistrict)!.districtId
+      ? (nearestMicro(geo.lat, geo.lng, home)?.id ?? c.microdistrict)
+      : c.microdistrict;
   const inside = [...(complexOsm[c.id] ?? [])].sort((a, b) => a.osmId - b.osmId);
   const rows: Omit<BuildingRow, "id">[] = [];
   if (geo.polygons && inside.length) {
@@ -136,7 +146,7 @@ for (const c of seed.residential_complexes) {
         wallMaterial: b.wallMaterial ?? null,
         apartments: b.apartments,
         complexId: c.id,
-        microdistrictId: c.microdistrict,
+        microdistrictId: microId,
         managementCompanyId: null,
       });
     }
@@ -153,7 +163,7 @@ for (const c of seed.residential_complexes) {
       wallMaterial: null,
       apartments: null,
       complexId: c.id,
-      microdistrictId: c.microdistrict,
+      microdistrictId: microId,
       managementCompanyId: null,
     });
   } else continue;
@@ -165,7 +175,7 @@ for (const c of seed.residential_complexes) {
     status: c.status,
     floors: c.floors ?? null,
     note: c.note ?? null,
-    microdistrictId: c.microdistrict,
+    microdistrictId: microId,
     lat: geo.lat,
     lng: geo.lng,
   });
@@ -205,10 +215,6 @@ const streetOf = (address: string) => norm(address.split(",")[0]);
 const wordRe = (w: string) => new RegExp(`(^|[^а-яa-z0-9])${norm(w)}($|[^а-яa-z0-9])`);
 const seededIds = new Set(buildings.map((b) => b.id));
 const seededAddresses = new Set(buildings.map((b) => norm(b.address)));
-const nearestMicro = (lat: number, lng: number, districtId: string) =>
-  microdistricts
-    .filter((m) => m.districtId === districtId)
-    .sort((a, b) => (a.center[0] - lat) ** 2 + (a.center[1] - lng) ** 2 - ((b.center[0] - lat) ** 2 + (b.center[1] - lng) ** 2))[0];
 
 const works = DEMO_DOCUMENTS.map((d) => {
   const res = d.match.streets.map(wordRe);
