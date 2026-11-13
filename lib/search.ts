@@ -176,6 +176,48 @@ export async function ensureOsmBuilding(osmId: number): Promise<string | null> {
   return id;
 }
 
+// --- the house under a map click (§5.4) ---
+const HOUSE_RADIUS_M = 80;
+/** «2А корп. 3», «2а к3», «19 стр1» → «2ак3», «19с1»: 2GIS and OSM spell building parts differently. */
+export const houseNumberKey = (n: string) =>
+  norm(n)
+    .replace(/корпус|корп\.?/g, "к")
+    .replace(/строение|стр\.?|ст(?=\d)/g, "с")
+    .replace(/[\s.]/g, "");
+
+const STREET_TYPES = new Set(["улица", "переулок", "проспект", "площадь", "бульвар", "набережная", "шоссе", "проезд", "тупик", "наб", "пер", "просп", "пркт", "бул", "туп"]);
+/** «Алеутская улица» and «ул. Алеутская» → «алеутская»: street words without the street type and abbreviations. */
+export const streetKey = (s: string) =>
+  words(s)
+    .filter((w) => !STREET_TYPES.has(w) && (w.length > 2 || /\d/.test(w)))
+    .sort()
+    .join(" ");
+
+/**
+ * Passport id of the house that 2GIS found under a click: its point, street and house number. A seeded house wins, else
+ * an OSM address point (created lazily); both must have the same street and number within 80 m, so a click never opens
+ * the neighbour.
+ */
+export async function houseAt(lat: number, lng: number, street: string, number: string): Promise<string | null> {
+  const k = Math.cos((lat * Math.PI) / 180);
+  const dist = (pLat: number, pLng: number) => Math.hypot(pLat - lat, (pLng - lng) * k) * 111_320;
+  const want = `${streetKey(street)}|${houseNumberKey(number)}`;
+  const near = <T>(items: T[], at: (t: T) => [lat: number, lng: number, street: string, number: string]) =>
+    items
+      .map((t) => ({ t, a: at(t) }))
+      .map(({ t, a }) => ({ t, a, d: dist(a[0], a[1]) }))
+      .filter(({ a, d }) => d <= HOUSE_RADIUS_M && `${streetKey(a[2])}|${houseNumberKey(a[3])}` === want)
+      .sort((x, y) => x.d - y.d)[0]?.t;
+  const seeded = near(await prisma.building.findMany({ select: { id: true, address: true, lat: true, lng: true } }), (b) => [
+    b.lat,
+    b.lng,
+    ...(splitAddress(b.address) as [string, string]),
+  ]);
+  if (seeded) return seeded.id;
+  const osm = near([...addressPoints().byId.values()], (p) => [p[3], p[4], p[1], p[2]]);
+  return osm ? ensureOsmBuilding(osm[0]) : null;
+}
+
 // --- streets of city works (§6.4) ---
 const STOP_WORDS = new Set([
   "адмирала", "генерала", "маршала", "капитана", "академика", "лейтенанта", "героя",

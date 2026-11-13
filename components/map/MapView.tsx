@@ -24,6 +24,8 @@ const START_ZOOM = 11.2;
 const PITCH: Record<MapLevel, number> = { city: 0, district: 35, complex: 55, house: 60 };
 // 2GIS draws buildings in 3D from about zoom 17; a complex opens right at that point.
 const ZOOM = { complex: 17, house: 17.5 };
+/** From this zoom a click on the map opens the house under it instead of choosing a district. */
+const HOUSE_CLICK_ZOOM = 15.5;
 const FLY_MS = 1400;
 const FIT_MS = 1200;
 const EASING = "easeInOutCubic" as const;
@@ -71,20 +73,36 @@ function announceReady() {
   window.dispatchEvent(new Event("map:ready"));
 }
 
-// --- 2GIS building id at a point (Catalog API reverse geocode), cached per point ---
-const buildingIds = new Map<string, Promise<string | null>>();
-function buildingIdAt(lat: number, lng: number) {
+// --- 2GIS building at a point (Catalog API reverse geocode), cached per point ---
+interface GisBuilding {
+  id: string;
+  point?: { lat: number; lon: number };
+  address?: { components?: { street?: string; number?: string }[] };
+}
+const buildings = new Map<string, Promise<GisBuilding | null>>();
+function buildingAt(lat: number, lng: number) {
   const key = `${lat},${lng}`;
-  let hit = buildingIds.get(key);
+  let hit = buildings.get(key);
   if (!hit) {
-    const url = `https://catalog.api.2gis.com/3.0/items/geocode?lat=${lat}&lon=${lng}&type=building&fields=items.point&key=${KEY}`;
+    const url = `https://catalog.api.2gis.com/3.0/items/geocode?lat=${lat}&lon=${lng}&type=building&fields=items.point,items.address&key=${KEY}`;
     hit = fetch(url)
-      .then((r) => (r.ok ? (r.json() as Promise<{ result?: { items?: { id: string }[] } }>) : null))
-      .then((j) => j?.result?.items?.[0]?.id.split("_")[0] ?? null)
+      .then((r) => (r.ok ? (r.json() as Promise<{ result?: { items?: GisBuilding[] } }>) : null))
+      .then((j) => j?.result?.items?.[0] ?? null)
       .catch(() => null);
-    buildingIds.set(key, hit);
+    buildings.set(key, hit);
   }
   return hit;
+}
+const buildingIdAt = (lat: number, lng: number) => buildingAt(lat, lng).then((b) => b?.id.split("_")[0] ?? null);
+
+/** Passport id of the house under a click: 2GIS names the building, our API finds it among the city's addresses (§5.4). */
+async function passportAt(lat: number, lng: number) {
+  const b = await buildingAt(lat, lng);
+  const a = b?.address?.components?.find((c) => c.street && c.number);
+  if (!b?.point || !a) return null;
+  const q = new URLSearchParams({ lat: String(b.point.lat), lng: String(b.point.lon), street: a.street!, number: a.number! });
+  const res = await fetch(`/api/buildings/at?${q}`).catch(() => null);
+  return res?.ok ? ((await res.json()) as { id: string }).id : null;
 }
 
 const rgba = (hex: string, alpha: number) =>
@@ -162,9 +180,17 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
   // The report wizard listens for this to take a point on the map (§5.5).
   const point = (lngLat: number[]) =>
     window.dispatchEvent(new CustomEvent<MapClickDetail>("map:click", { detail: { lng: lngLat[0], lat: lngLat[1] } }));
+  /** Click on the map itself: a point for the report wizard, else the house under it when zoomed in to houses. */
+  const click = (lngLat: number[], orElse?: () => void) => {
+    if (picking()) return point(lngLat);
+    if (map.getZoom() < HOUSE_CLICK_ZOOM) return orElse?.();
+    passportAt(lngLat[1], lngLat[0]).then((id) => {
+      if (id && !picking()) latest.current.push(houseHref(id));
+    });
+  };
   map.on("click", (e) => {
     hide();
-    point(e.lngLat);
+    click(e.lngLat);
   });
 
   return {
@@ -178,8 +204,8 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
       onMarker = target !== null;
       setTip(target && el ? { target, ...centerOf(el) } : districtTip());
     },
-    /** District polygons swallow the map click: they forward the point while a point is being picked. */
-    point,
+    /** District polygons swallow the map click: they forward it, choosing the district only below house zoom. */
+    click,
     go(href: string) {
       if (picking()) return;
       latest.current.push(href);
@@ -314,7 +340,7 @@ export function MapView({ className }: { className?: string }) {
         p.on("mouseover", (e) => ui.district(d.id, e.point));
         p.on("mousemove", (e) => ui.district(d.id, e.point));
         p.on("mouseout", () => ui.district(null));
-        p.on("click", (e) => (picking() ? ui.point(e.lngLat) : ui.go(districtHref(d.id))));
+        p.on("click", (e) => ui.click(e.lngLat, () => ui.go(districtHref(d.id))));
         return p;
       });
     });
