@@ -6,9 +6,29 @@
 - `docs/PLAN.md` — task list and status
 - `app/layout.tsx` — root layout: Inter, `Providers`, `Splash`, metadata
 - `app/globals.css` — §7 tokens (light/dark), `panel-box`, `.skeleton-shimmer`, `<details>` animation, view-transition and splash CSS
-- `app/(map)/layout.tsx` — map group layout (`force-dynamic`): fetches map data once, `MapProvider` + `MapView` + page
-- `app/(map)/page.tsx` — TEMPORARY harness (task 5): renders `DevHarness`; replaced in tasks 6–7
-- `app/(map)/DevHarness.tsx` — TEMPORARY: sets the city scene; in dev a control for scenes, layers and theme (delete in task 6/7)
+- `app/(map)/layout.tsx` — map group layout (`force-dynamic`): fetches map data once, `MapProvider` + `MapShell` around the page
+- `app/(map)/page.tsx` — `/`: `CityPanel`
+- `app/(map)/d/[district]/page.tsx` — `/d/[district]`: `DistrictPanel` (404 for unknown district)
+- `app/(map)/d/[district]/c/[complex]/page.tsx` — complex page: `ComplexCard`; wrong district in the URL → redirect to the canonical one
+- `app/(map)/house/[id]/page.tsx` — house passport; `osm-…` that resolves to another id → redirect to the canonical id (keeps `?issue=`)
+- `app/(map)/**/loading.tsx` — `PanelSkeleton` for each map page
+- `components/map/MapShell.tsx` — shell §5.1: rail, map beside the rail, panel on map pages, tab bar; phone/desktop by media query
+- `components/map/Rail.tsx` — `Rail` (desktop 88 px), `TabBar` (phone), `isMapPath`; all links `prefetch`
+- `components/panel/PanelSheet.tsx` — desktop 420 px panel column under the search; phone bottom sheet (112 px / half / 64 px from top, drag or tap the handle); sets map insets
+- `components/map/MapControls.tsx` — search + chips (breadcrumbs from district level, «Мой дом»); on phones round theme and layers buttons
+- `components/map/LayersPopover.tsx` — «Слои» popover §5.2
+- `components/search/SearchBox.tsx` — search §5.9 (`/` hotkey, rotating placeholder, debounced `/api/search`, results card); `SEARCH_INPUT_ID`
+- `components/panel/CityPanel.tsx`, `DistrictPanel.tsx`, `ComplexCard.tsx` — panels §5.3 (each sets its map scene)
+- `components/panel/AiDigest.tsx` — district digest from `/api/ai/digest` (hidden on error)
+- `components/panel/BuildingLink.tsx` — house row (address, floors if known, open issues)
+- `components/panel/badges.tsx` — `IssueStatusBadge`, `ComplexStatusBadge`
+- `components/house/HousePassport.tsx` — passport §5.4: header, health, sections, ГИС ЖКХ and capital-repair fund links, actions
+- `components/house/HealthRing.tsx` — health ring 0–100 with breakdown
+- `components/house/Section.tsx` — passport block in `panel-box`
+- `components/house/CabinetButtons.tsx` — `SaveHouseButton`, `SupportButton` («Меня тоже касается» → POST support)
+- `components/house/ShareButton.tsx` — `navigator.share` or copy link + toast
+- `components/house/Spotlight.tsx` — highlighted issue row scrolled to center (`?issue=`)
+- `components/map/savedHouses.ts` — local cabinet in `localStorage["vdk-cabinet"]`: `getSavedHouses`, `toggleSavedHouse`, `markSupported`, `useCabinet`; event `cabinet:changed`
 - `components/map/MapContext.tsx` — `MapProvider`, `useMap`, `useMapScene`; types `MapData`, `MapScene`, `MapLevel`, `MapLayers`, `MapInsets`; issues refetch on `issues:changed`
 - `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, `theme:switch`, `map:ready`, 2GIS building selection
 - `components/map/MapTip.tsx` — hover card (rAF-batched store `setTip`, framer-motion glide)

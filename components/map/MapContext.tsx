@@ -35,7 +35,7 @@ export interface MapLayers {
   works: boolean;
 }
 
-/** Camera padding in px: the part of the map covered by the rail, panel or sheet. */
+/** Camera padding in px: the part of the map (which sits beside the rail) covered by the panel, search or sheet. */
 export interface MapInsets {
   top: number;
   right: number;
@@ -62,7 +62,6 @@ interface MapContextValue {
 
 const MapContext = createContext<MapContextValue | null>(null);
 
-const RAIL = 88;
 const PANEL = 420;
 const DESKTOP = 768;
 
@@ -76,7 +75,7 @@ function defaultInsets(viewport: string): MapInsets {
   if (!viewport) return { top: 0, right: 0, bottom: 0, left: 0 };
   const [w, h] = viewport.split("x").map(Number);
   return w >= DESKTOP
-    ? { top: 0, right: 0, bottom: 40, left: RAIL + PANEL + 16 }
+    ? { top: 0, right: 0, bottom: 40, left: PANEL + 32 }
     : { top: 0, right: 0, bottom: Math.round(h / 2), left: 0 };
 }
 

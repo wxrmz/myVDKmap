@@ -240,6 +240,7 @@ export function MapView({ className }: { className?: string }) {
           lowZoomMaxPitch: PITCH.house,
           style: STYLES[initial],
           padding: insetsRef.current,
+          controlsLayoutPadding: insetsRef.current,
           lang: "ru",
           enableTrackResize: true,
         });
@@ -309,6 +310,8 @@ export function MapView({ className }: { className?: string }) {
 
   useEffect(() => {
     api?.map.setPadding(insets, { duration: 300 });
+    // 2GIS zoom and copyright controls stay clear of the panel, search and sheet.
+    api?.map.setControlsLayoutPadding(insets);
   }, [api, insets]);
 
   // Camera per scene. Data is read through `latest` so new issues do not re-fly the camera.
