@@ -31,7 +31,25 @@ const geo: DistrictGeo = {
 
 const shapes = buildShapes(geo, [{ lat: 43.05, lng: 132.05 }], [{ lat: 43.02, lng: 132.02 }]);
 assert.deepEqual(shapes.multi.frame, { southWest: [132, 43], northEast: [132.1, 43.1] });
-assert.ok(Math.abs(shapes.multi.label[0] - 132.05) < 1e-6 && Math.abs(shapes.multi.label[1] - 43.05) < 1e-6);
+// grid search: the label lands in the middle of the square within a fraction of its size
+assert.ok(Math.abs(shapes.multi.label[0] - 132.05) < 2e-3 && Math.abs(shapes.multi.label[1] - 43.05) < 2e-3);
+// a bent (L) shape: the label stays inside an arm, not at the mass center out in the notch
+const bent = buildShapes(
+  {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { id: "l", name: "L", color: "#000000" },
+        geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 0.2], [0.2, 0.2], [0.2, 1], [0, 1], [0, 0]]] },
+      },
+    ],
+  },
+  [],
+  [],
+);
+const [lx, ly] = bent.l.label;
+assert.ok(lx < 0.2 || ly < 0.2, `L label ${lx},${ly}`);
 assert.equal(shapes.multi.parts.length, 2);
 // no points anywhere: the largest part wins
 assert.deepEqual(shapes.empty.frame, { southWest: [130.5, 42], northEast: [130.8, 42.3] });

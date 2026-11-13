@@ -25,7 +25,8 @@ export function ThemeToggle({ className }: { className?: string }) {
     window.dispatchEvent(
       new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }),
     );
-    await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 400))]);
+    // Up to 1.2 s: only the very first switch takes that long (new style assets); later ones resolve in ~50 ms.
+    await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 1200))]);
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!document.startViewTransition || reduce) {

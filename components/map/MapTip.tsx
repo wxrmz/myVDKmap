@@ -163,7 +163,12 @@ export function MapTip() {
           initial={{ x: tip.x, y: tip.y, opacity: 0, scale: 0.94 }}
           animate={{ x: tip.x, y: tip.y, opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.94 }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
+          // A spring keeps its velocity when the cursor retargets it every frame, so the card trails smoothly instead of restarting a tween.
+          transition={{
+            x: { type: "spring", stiffness: 600, damping: 45, mass: 0.5 },
+            y: { type: "spring", stiffness: 600, damping: 45, mass: 0.5 },
+            default: { duration: 0.16, ease: "easeOut" },
+          }}
         >
           <div
             role="tooltip"
