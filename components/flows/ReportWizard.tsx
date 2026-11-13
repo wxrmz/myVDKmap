@@ -189,7 +189,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
     <div className="flex flex-col gap-5 p-4 md:p-6">
       <FlowHeader
         title="Сообщить о проблеме"
-        description="Сфотографируйте, опишите, укажите адрес — ИИ подскажет, кто отвечает, и составит обращение."
+        description="Сфотографируйте, опишите, укажите адрес — подскажем, кто отвечает, и составим обращение."
         backHref={house ? houseHref(house.id) : "/"}
       />
 
@@ -335,10 +335,10 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
             </>
           ) : (
             <>
-              <h2 className="text-lg font-semibold">Что подсказал ИИ</h2>
+              <h2 className="text-lg font-semibold">Кто отвечает и что написать</h2>
               {busy && !result ? (
                 <div className="panel-box flex items-center gap-3 text-muted-foreground">
-                  <Loader2 className="size-5 animate-spin" /> Разбираем фото и описание…
+                  <Loader2 className="size-5 animate-spin" /> Разбираем описание…
                 </div>
               ) : result ? (
                 <>

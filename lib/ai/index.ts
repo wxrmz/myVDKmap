@@ -1,23 +1,16 @@
-// AI facade (§6.1): AI_PROVIDER=openai with AI_API_KEY and AI_MODEL set uses the model, anything else the mock.
-import * as mock from "./mock";
-import * as openai from "./openai";
-import type { BillInput, ClassifyInput, DocumentOutput } from "./schemas";
+// Rules layer (§6.1): keyword classification, receipt lines, document summaries and district digests. No model, no keys.
+import * as rules from "./rules";
+import type { DocumentOutput } from "./schemas";
 
-const provider = () =>
-  process.env.AI_PROVIDER === "openai" && process.env.AI_API_KEY && process.env.AI_MODEL ? openai : mock;
+export { classifyIssue, parseBill } from "./rules";
 
-export const classifyIssue = (input: ClassifyInput) => provider().classifyIssue(input);
-
-export const parseBill = (input: BillInput) => provider().parseBill(input);
-
-/** Summary plus houses bound from the text's streets and numbers (always local: the DB is ours). */
+/** Summary plus houses bound from the text's streets and numbers. */
 export async function summarizeDocument(text: string): Promise<DocumentOutput> {
-  const [summary, buildings] = await Promise.all([provider().summarizeDocument(text), mock.bindBuildings(text)]);
-  return { ...summary, buildings };
+  return { ...rules.summarizeDocument(text), buildings: await rules.bindBuildings(text) };
 }
 
 /** Null when there is no such district. */
 export async function districtDigest(id: string) {
-  const facts = await mock.districtFacts(id);
-  return facts && provider().districtDigest(facts);
+  const facts = await rules.districtFacts(id);
+  return facts && rules.districtDigest(facts);
 }

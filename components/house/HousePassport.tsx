@@ -221,7 +221,7 @@ export function HousePassport({ passport }: { passport: BuildingPassportDTO }) {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">Квитанций пока нет — загрузите свою, ИИ её разберёт.</p>
+          <p className="text-sm text-muted-foreground">Квитанций пока нет — загрузите свою, мы объясним каждую строку.</p>
         )}
       </Section>
       <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">

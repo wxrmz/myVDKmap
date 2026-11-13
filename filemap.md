@@ -80,12 +80,11 @@
 - `app/api/auth/esia/demo/route.ts` — `POST` link or demo sign-in, `DELETE` unlink
 - `app/api/cabinet/data/route.ts` — `GET|PUT` the signed-in user's cabinet
 - `app/api/cabinet/houses/route.ts` — `GET ?ids=` saved house summaries (`HouseSummaryDTO`)
-- `lib/ai/schemas.ts` — zod schemas of the AI layer: route inputs and outputs of `classifyIssue`, `parseBill` (`BillRaw` → `BillOutput`), `summarizeDocument` (`DocSummary`, `DocumentOutput`), `districtDigest`
-- `lib/ai/index.ts` — AI facade (§6.1): `classifyIssue`, `parseBill`, `summarizeDocument` (+ house binding), `districtDigest`; provider from `AI_PROVIDER` (openai only with `AI_API_KEY` and `AI_MODEL`)
-- `lib/ai/mock.ts` — deterministic provider: keyword classification over the authority handbook, receipt text parser + `analyzeBill` (glossary, history, tariff/season changes), prepared or heuristic document summaries, `houseNumbers`, `bindBuildings`, `districtFacts`/`districtDigest`
-- `lib/ai/openai.ts` — OpenAI-compatible provider via fetch (`/chat/completions`, JSON mode, 20 s timeout); invalid answer → one retry → mock, network error → mock
+- `lib/ai/schemas.ts` — zod schemas of the rules layer: route inputs and outputs of `classifyIssue`, `parseBill` (`BillRaw` → `BillOutput`), `summarizeDocument` (`DocSummary`, `DocumentOutput`), `districtDigest`
+- `lib/ai/index.ts` — rules facade (§6.1, no AI model): `classifyIssue`, `parseBill`, `summarizeDocument` (+ house binding), `districtDigest`
+- `lib/ai/rules.ts` — the rules: keyword classification over the authority handbook, receipt text parser + `analyzeBill` (glossary, history, tariff/season changes), prepared or heuristic document summaries, `houseNumbers`, `bindBuildings`, `districtFacts`/`districtDigest`
 - `lib/ai/pdf.ts` — `pdfText`: text of a PDF receipt line by line (unpdf; items on one baseline = one line); empty for scans. Self-check `lib/ai/pdf.test.ts`
-- `lib/ai/mock.test.ts` — self-check of the mock provider (needs the seeded DB)
+- `lib/ai/rules.test.ts` — self-check of the rules (needs the seeded DB)
 - `app/api/ai/classify/route.ts` — `POST` issue classification and appeal text
 - `app/api/ai/bill/route.ts` — `POST` receipt analysis (`demo`, `text` or `image`)
 - `app/api/ai/document/route.ts` — `POST` work announcement summary + bound houses

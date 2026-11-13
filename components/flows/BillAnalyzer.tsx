@@ -1,6 +1,6 @@
 "use client";
 
-// «Разобрать квитанцию» (§5.6): photo, PDF, text or the demo → lines in plain words, chart by month, what changed.
+// «Разобрать квитанцию» (§5.6): PDF, text or the demo → lines in plain words, chart by month, what changed.
 import { useRef, useState } from "react";
 import { FileUp, Loader2, Save, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -32,7 +32,7 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
   const bill = bills[kind] ?? null;
   const saved = useCabinet().bills.some((b) => bill && b.id === billId(kind, bill));
 
-  async function analyze(input: { demo?: true; text?: string; image?: string }) {
+  async function analyze(input: { demo?: true; text?: string; pdf?: string }) {
     const k = kind;
     setBusy(true);
     const res = await api<BillOutput>("/api/ai/bill", { body: { ...input, kind: k, buildingId: house?.id } });
@@ -42,9 +42,9 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
 
   async function pickFile(file: File | undefined) {
     if (!file) return;
-    if (!file.type.startsWith("image/") && file.type !== "application/pdf") return toast.error("Нужно фото или PDF квитанции");
+    if (file.type !== "application/pdf") return toast.error("Нужна квитанция в PDF. Фото не читаем — вставьте текст квитанции в поле ниже");
     if (file.size > MAX_FILE) return toast.error("Файл больше 5 МБ. Выберите поменьше");
-    await analyze({ image: await readAsDataUrl(file) });
+    await analyze({ pdf: await readAsDataUrl(file) });
   }
 
   function save() {
@@ -102,12 +102,12 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
             </Button>
           )}
           <Button className="h-11 rounded-xl" onClick={() => fileRef.current?.click()} disabled={busy}>
-            <FileUp /> Фото или PDF
+            <FileUp /> PDF квитанции
           </Button>
           <input
             ref={fileRef}
             type="file"
-            accept="image/*,application/pdf"
+            accept="application/pdf"
             className="hidden"
             onChange={(e) => {
               pickFile(e.target.files?.[0]);

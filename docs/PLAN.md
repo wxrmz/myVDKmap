@@ -42,6 +42,8 @@ Next 15.5 + React 19 + TS strict + Tailwind v4 + tw-animate-css, eslint (flat co
 ## 8. ИИ-слой
 `lib/ai/index.ts`, `mock.ts`, `openai.ts`, `schemas.ts`; `/api/ai/classify|bill|document|digest` (§6.1); самопроверка `lib/ai/mock.test.ts` (классификация примера «яма» → road + администрация; разбор квитанции даёт рост после 2026-10; `summarizeDocument` привязывает дома). Проверка: mock без ключа, openai — один повтор при невалидном ответе, затем mock.
 
+Позже ИИ убран по решению владельца: провайдер OpenAI и настройки `AI_*` удалены, `mock.ts` стал `rules.ts` (правила и справочники), квитанции принимаются только в PDF или текстом.
+
 ## 9. Потоки
 `ReportWizard` (§5.5), `BillAnalyzer` (§5.6), `WorksFeed`, `WorksSearch`, `DocumentParser` (§5.7), `FlowHeader`, `components/flows/api.ts`; страницы `/report`, `/bill`, `/changes`. Событие `issues:changed`.
 

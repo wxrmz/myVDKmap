@@ -1,10 +1,10 @@
-// Self-check for the mock AI provider (§6.1): npx tsx lib/ai/mock.test.ts (needs the seeded DB).
+// Self-check for the rules layer (§6.1): npx tsx lib/ai/rules.test.ts (needs the seeded DB).
 import assert from "node:assert/strict";
 import { prisma } from "@/lib/db";
 import { DEMO_BILL_TEXTS, DEMO_BILLS } from "@/lib/fixtures/bills";
 import { DEMO_DOCUMENTS } from "@/lib/fixtures/documents";
 import { norm } from "@/lib/utils";
-import { bindBuildings, classifyIssue, districtDigest, districtFacts, houseNumbers, parseBill, summarizeDocument } from "./mock";
+import { bindBuildings, classifyIssue, districtDigest, districtFacts, houseNumbers, parseBill, summarizeDocument } from "./rules";
 import { BillOutputSchema, ClassifyOutputSchema, DocSummarySchema } from "./schemas";
 
 const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => String(a + i));
@@ -59,8 +59,8 @@ async function main() {
   const loose = (await parseBill({ text: "Холодная вода ........ 320,64 руб.\nДомофон — 60,00\nИтого: 380,64" }))!;
   assert.deepEqual(loose.items.map((i) => [i.name, i.amount]), [["Холодная вода", 320.64], ["Домофон", 60]]);
   assert.equal(loose.total, 380.64);
-  // A photo is not replaced by the demo receipt; a capital repair receipt shows only its own line, with no ЖКУ history.
-  assert.equal(await parseBill({ image: "data:image/png;base64,AAAA" }), null);
+  // No text, no receipt (never the demo); a capital repair receipt shows only its own line, with no ЖКУ history.
+  assert.equal(await parseBill({}), null);
   const capital = (await parseBill({ kind: "capital", text: "Период: ноябрь 2026\nВзнос на капитальный ремонт 54,30 м² × 12,00 651,60\nИтого к оплате: 651,60" }))!;
   assert.deepEqual(capital.items.map((i) => [i.name, i.amount]), [["Взнос на капитальный ремонт", 651.6]]);
   assert.deepEqual([capital.changes, capital.history], [[], [{ period: "2026-11", total: 651.6 }]]);
@@ -104,7 +104,7 @@ async function main() {
   assert.ok(sentences.length >= 3 && sentences.length <= 4, districtDigest(facts).text);
   assert.equal(await districtFacts("nowhere"), null);
 
-  console.log("ai mock: ok");
+  console.log("rules: ok");
 }
 
 main()

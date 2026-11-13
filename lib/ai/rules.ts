@@ -1,4 +1,4 @@
-// Deterministic AI provider (§6.1): keyword rules, the authority handbook, prepared fixtures and DB facts. Server only.
+// Rules (§6.1): keyword classification, the authority handbook, prepared fixtures and DB facts. Server only.
 import { prisma } from "@/lib/db";
 import { BILL_ITEM_GLOSSARY, DEMO_BILLS, DEMO_BUILDING_ID, TARIFFS, periodLabel } from "@/lib/fixtures/bills";
 import { DEMO_DOCUMENTS } from "@/lib/fixtures/documents";
@@ -171,7 +171,7 @@ const money = (n: number) => n.toLocaleString("ru-RU", { minimumFractionDigits: 
  * Plain names, history of the house and «what changed and what to do» for recognised receipt lines.
  * The house history is made of combined housing receipts, so other kinds (capital repair, power) are not compared with it.
  */
-export async function analyzeBill(raw: BillRaw, buildingId = DEMO_BUILDING_ID, kind: BillKind = "housing"): Promise<BillOutput> {
+async function analyzeBill(raw: BillRaw, buildingId = DEMO_BUILDING_ID, kind: BillKind = "housing"): Promise<BillOutput> {
   const rows = kind === "housing" ? await prisma.bill.findMany({ where: { buildingId }, orderBy: { period: "asc" } }) : [];
   const history: { period: string; items: BillItem[]; total: number }[] = rows.length
     ? rows.map((b) => ({ period: b.period, items: JSON.parse(b.items) as BillItem[], total: b.total }))
@@ -233,7 +233,7 @@ const latestDemoBill = (): BillRaw => {
   return { period, items, total };
 };
 
-/** Null when there is nothing the mock can read: a photo (only the model sees it) or a PDF without a text layer. */
+/** Null when there is no text to read (a PDF without a text layer). */
 export async function parseBill({ buildingId, text, demo, kind = "housing" }: Partial<BillInput>): Promise<BillOutput | null> {
   if (demo) return analyzeBill(latestDemoBill(), DEMO_BUILDING_ID);
   if (!text) return null;
@@ -426,7 +426,7 @@ export async function districtFacts(id: string) {
     activeWorks: works,
   };
 }
-export type DistrictFacts = NonNullable<Awaited<ReturnType<typeof districtFacts>>>;
+type DistrictFacts = NonNullable<Awaited<ReturnType<typeof districtFacts>>>;
 
 export function districtDigest(f: DistrictFacts): DigestOutput {
   const prepositional = f.name.replace(/ий район$/, "ом районе");

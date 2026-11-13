@@ -36,7 +36,7 @@ export function AiDigest({ districtId }: { districtId: string }) {
       ) : (
         <p className="text-sm whitespace-pre-line animate-in fade-in duration-300">{state?.text}</p>
       )}
-      <p className="text-xs text-muted-foreground">Сводку составил ИИ по данным сервиса.</p>
+      <p className="text-xs text-muted-foreground">Сводка собрана автоматически по данным сервиса.</p>
     </section>
   );
 }

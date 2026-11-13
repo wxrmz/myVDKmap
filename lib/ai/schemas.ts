@@ -1,9 +1,9 @@
-// zod schemas of the AI layer (§6.1): route inputs and validated outputs of every provider.
+// zod schemas of the rules layer (§6.1): route inputs and the shapes of its answers.
 import { z } from "zod";
 import { BILL_KINDS, ISSUE_CATEGORIES, WORK_KINDS } from "@/lib/types";
 
 const PHOTO = /^(data:image\/[\w.+-]+;base64,|\/(?!\/))/; // a data URL, or a site path such as the demo photo
-const BILL_FILE = /^data:(image\/[\w.+-]+|application\/pdf);base64,/;
+const BILL_PDF = /^data:application\/pdf;base64,/;
 /** Citations of laws («ст. 12», «статья», «№ 59-ФЗ»): appeals must not invent them. */
 const LAW_CITATION = /(?<![\p{L}])ст\.\s*\d|стать[яиюей]|\d+-фз|федеральн\S* закон/iu;
 
@@ -36,11 +36,11 @@ export const BillInputSchema = z
   .object({
     buildingId: z.string().min(1).optional(),
     kind: z.enum(BILL_KINDS, { error: "Выберите, какая это квитанция" }).default("housing"),
-    image: z.string().regex(BILL_FILE, "Загрузите фото или PDF квитанции").optional(),
+    pdf: z.string().regex(BILL_PDF, "Загрузите квитанцию в PDF").optional(),
     text: z.string().trim().max(20000, "Текст длиннее 20 000 символов").optional(),
     demo: z.boolean().optional(),
   })
-  .refine((b) => b.demo || b.image || b.text, { message: "Загрузите квитанцию, вставьте её текст или выберите пример", path: ["text"] });
+  .refine((b) => b.demo || b.pdf || b.text, { message: "Загрузите PDF квитанции, вставьте её текст или выберите пример", path: ["text"] });
 export type BillInput = z.infer<typeof BillInputSchema>;
 
 const PERIOD = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
@@ -52,9 +52,8 @@ const BillItemSchema = z.object({
   tariff: z.number().optional(),
 });
 
-/** What recognition of a receipt gives: its lines as printed. */
-export const BillRawSchema = z.object({ period: PERIOD.optional(), items: z.array(BillItemSchema).min(1), total: z.number() });
-export type BillRaw = z.infer<typeof BillRawSchema>;
+/** What reading a receipt gives: its lines as printed. */
+export type BillRaw = { period?: string; items: z.infer<typeof BillItemSchema>[]; total: number };
 
 export const BillOutputSchema = z.object({
   period: PERIOD.optional(),
@@ -85,5 +84,4 @@ export type DocSummary = z.infer<typeof DocSummarySchema>;
 export type DocumentOutput = DocSummary & { buildings: { id: string; address: string }[] };
 
 // --- districtDigest ---
-export const DigestOutputSchema = z.object({ text: z.string().trim().min(1) });
-export type DigestOutput = z.infer<typeof DigestOutputSchema>;
+export type DigestOutput = { text: string };
