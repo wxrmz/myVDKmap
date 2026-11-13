@@ -135,7 +135,8 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
   // The highlight is a separate non-interactive polygon, redrawn at most once per frame.
   const relight = () => {
     frame = 0;
-    const id = district?.id ?? null;
+    // The chosen district is not highlighted on hover: it already stands out by its border.
+    const id = district && district.id !== latest.current.focus ? district.id : null;
     if ((lit?.id ?? null) === id) return;
     lit?.polygons.forEach((p) => p.destroy());
     lit = null;
@@ -143,7 +144,7 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
     const shape = id ? shapes[id] : undefined;
     const color = districts.find((d) => d.id === id)?.color;
     if (!id || !shape || !color) return;
-    const alpha = focus ? 0.12 : theme === "light" ? 0.24 : 0.23;
+    const alpha = focus ? 0.2 : theme === "light" ? 0.32 : 0.3;
     lit = {
       id,
       polygons: shape.parts.map(
