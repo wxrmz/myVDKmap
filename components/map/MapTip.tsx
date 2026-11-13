@@ -2,7 +2,7 @@
 
 // Hover card on the map (§5.2 «Плашки при наведении»): one card that glides between targets.
 // State lives in a tiny store outside React so hover re-renders only this component.
-import { useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { plural } from "@/lib/health";
 import { complexLabel } from "@/lib/nav";
@@ -41,11 +41,34 @@ let queued: Tip | null | undefined;
 let frame = 0;
 const listeners = new Set<() => void>();
 
+// The positioner element; moves of the same target go straight to its style, so following the cursor never re-renders React.
+let positioner: HTMLDivElement | null = null;
+
+const keyOf = (t: TipTarget) => {
+  switch (t.kind) {
+    case "district": return `d:${t.district.id}`;
+    case "cluster": return `c:${t.issues[0]?.id}:${t.issues.length}`;
+    case "issue": return `i:${t.issue.id}`;
+    case "work": return `w:${t.work.id}`;
+    case "complex": return `x:${t.complex.id}`;
+  }
+};
+
+function place(el: HTMLDivElement, tip: Tip, glide: boolean) {
+  el.style.transition = glide ? "transform 160ms ease-out" : "none";
+  el.style.transform = `translate(${tip.x}px, ${tip.y}px)`;
+  const card = el.firstElementChild as HTMLElement | null;
+  if (card) card.style.transform = `translate(-50%, ${tip.y < OPEN_DOWN_ABOVE ? `${GAP}px` : `calc(-100% - ${GAP}px)`})`;
+}
+
 function flush() {
   frame = 0;
-  shown = queued ?? null;
+  const next = queued ?? null;
   queued = undefined;
-  listeners.forEach((l) => l());
+  const same = next && shown && keyOf(next.target) === keyOf(shown.target) && !!next.pinned === !!shown.pinned;
+  shown = next;
+  if (same && positioner) place(positioner, next, false);
+  else listeners.forEach((l) => l());
 }
 
 /** Queues the tip (null hides it); applied once per animation frame. While a tip is pinned only `force` or another pinned tip replace it. */
@@ -154,33 +177,33 @@ export function MapTip() {
     () => shown,
     () => null,
   );
-  const down = tip ? tip.y < OPEN_DOWN_ABOVE : false;
+  // New target: glide from the previous spot (§5.2); later cursor moves are applied in `flush` without a transition.
+  const attach = useCallback((el: HTMLDivElement | null) => {
+    positioner = el;
+    if (el && shown) place(el, shown, el.dataset.placed === "1");
+    if (el) el.dataset.placed = "1";
+  }, []);
+  useLayoutEffect(() => {
+    if (positioner && tip) place(positioner, tip, true);
+  }, [tip]);
   return (
     <AnimatePresence>
       {tip && (
-        <motion.div
-          className="pointer-events-none absolute top-0 left-0 z-20"
-          initial={{ x: tip.x, y: tip.y, opacity: 0, scale: 0.94 }}
-          animate={{ x: tip.x, y: tip.y, opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.94 }}
-          // A spring keeps its velocity when the cursor retargets it every frame, so the card trails smoothly instead of restarting a tween.
-          transition={{
-            x: { type: "spring", stiffness: 600, damping: 45, mass: 0.5 },
-            y: { type: "spring", stiffness: 600, damping: 45, mass: 0.5 },
-            default: { duration: 0.16, ease: "easeOut" },
-          }}
-        >
-          <div
-            role="tooltip"
-            className="panel-box absolute left-0 text-card-foreground"
-            style={{
-              width: TIP_WIDTH,
-              transform: `translate(-50%, ${down ? `${GAP}px` : `calc(-100% - ${GAP}px)`})`,
-            }}
-          >
-            <Content target={tip.target} />
+        <div ref={attach} className="pointer-events-none absolute top-0 left-0 z-20">
+          <div className="absolute left-0">
+            <motion.div
+              role="tooltip"
+              className="panel-box text-card-foreground"
+              style={{ width: TIP_WIDTH }}
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
+              <Content target={tip.target} />
+            </motion.div>
           </div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
