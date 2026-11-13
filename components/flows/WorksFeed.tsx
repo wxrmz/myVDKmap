@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { houseHref } from "@/lib/nav";
 import { WORK_KIND_LABELS, type CityWorkDTO } from "@/lib/types";
-import { cn, norm } from "@/lib/utils";
+import { cn, dayLabel, norm } from "@/lib/utils";
 import { WorksSearch } from "./WorksSearch";
 
 const MAX_CHIPS = 8;
@@ -18,8 +18,7 @@ export function isDone(w: Pick<CityWorkDTO, "endDate">, now: number) {
   return now >= new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
 }
 
-const date = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-const dates = (w: CityWorkDTO) => (w.endDate ? `${date(w.startDate)} — ${date(w.endDate)}` : `с ${date(w.startDate)}, срок не указан`);
+const dates = (w: CityWorkDTO) => (w.endDate ? `${dayLabel(w.startDate)} — ${dayLabel(w.endDate)}` : `с ${dayLabel(w.startDate)}, срок не указан`);
 
 export function WorksFeed({
   works,

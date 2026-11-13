@@ -6,7 +6,7 @@ import type { CityWorkDTO, DistrictWithCountsDTO, IssueDTO, MapComplexDTO } from
 import { buildShapes, type DistrictGeo, type DistrictShape } from "./shapes";
 
 /** Server-fetched once by `app/(map)/layout.tsx`. `issues` are open ones only. */
-export interface MapData {
+interface MapData {
   districts: DistrictWithCountsDTO[];
   complexes: MapComplexDTO[];
   issues: IssueDTO[];
@@ -36,7 +36,7 @@ export interface MapLayers {
 }
 
 /** Camera padding in px: the part of the map (which sits beside the rail) covered by the panel, search or sheet. */
-export interface MapInsets {
+interface MapInsets {
   top: number;
   right: number;
   bottom: number;

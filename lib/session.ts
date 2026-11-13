@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 import type { PublicUser } from "@/lib/auth";
 import { startCabinetSync, stopCabinetSync } from "@/lib/cabinet";
 
-export type SessionState = { status: "loading"; user: null } | { status: "guest"; user: null } | { status: "user"; user: PublicUser };
+type SessionState = { status: "loading"; user: null } | { status: "guest"; user: null } | { status: "user"; user: PublicUser };
 
 let state: SessionState = { status: "loading", user: null };
 let requested = false;

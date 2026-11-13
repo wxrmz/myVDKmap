@@ -59,9 +59,9 @@
 - `components/cabinet/HousesIssues.tsx` — «Мои дома» (summaries, subscriptions, works near), «Обращения» (draft, my issues)
 - `components/cabinet/BillsMeters.tsx` — «Квитанции» (saved, neighbours, capital repair), «Счётчики»
 - `components/cabinet/CommunitySettings.tsx` — «Соседи» (board, poll), «Настройки» (font size, notifications, profile, Госуслуги, password, delete account)
-- `components/cabinet/shared.tsx` — `useCabinet`, `useFontScale`, `useHouseSummaries`, formatters (`rub`, `monthLabel`, `dayLabel`), `CabinetSection`, `Empty`
-- `components/ui/` — shadcn (radix-ui) with §7 tweaks: accordion, badge, button, card, dialog, input, popover, skeleton, sonner, textarea
-- `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е)
+- `components/cabinet/shared.tsx` — `useCabinet`, `useFontScale`, `useHouseSummaries`, `CabinetSection`, `Empty`
+- `components/ui/` — shadcn (radix-ui) with §7 tweaks: accordion, badge, button, dialog, input, popover, skeleton, sonner, textarea
+- `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е), formatters `rub`, `monthLabel`, `dayLabel`
 - `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`, `SearchResult` (houses carry lat/lng), `HealthDTO`, `HouseSummaryDTO`
 - `lib/db.ts` — `prisma` PrismaClient singleton
 - `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `houseAt` + `streetKey`/`houseNumberKey` (house under a click: same street and number within 80 m), `houseFromGis` (else a `gis-…` passport from the 2GIS address), `streetPattern`, `getWorkStreets` (§6.4)

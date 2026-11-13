@@ -9,7 +9,7 @@
 Реальные интеграции с городскими системами, настоящая отправка обращений, платежи, микросервисы, Docker, деплой, геймификация, карусели поверх карты, брендинг Госуслуг (§12). Ничего сверх описанного.
 
 ## Стек
-Next.js 15.5 (App Router, webpack в dev) · React 19 · TypeScript strict · Tailwind CSS v4 + tw-animate-css · shadcn/ui на `radix-ui` · lucide-react · framer-motion · cmdk · sonner · next-themes · recharts · Prisma 6 + SQLite · zod 4 · @turf/turf · 2GIS MapGL (`@2gis/mapgl`, единственная карта) · tsx (сид и самопроверки) · Node 20+.
+Next.js 15.5 (App Router, webpack в dev) · React 19 · TypeScript strict · Tailwind CSS v4 + tw-animate-css · shadcn/ui на `radix-ui` · lucide-react · framer-motion · sonner · next-themes · recharts · Prisma 6 + SQLite · zod 4 · @turf/turf · 2GIS MapGL (`@2gis/mapgl`, единственная карта) · tsx (сид и самопроверки) · Node 20+.
 
 ## Архитектура
 Модули и их ответственность — §4. Маршруты и API — §2. Все страницы в `app/(map)/` с общим layout: карта монтируется один раз.

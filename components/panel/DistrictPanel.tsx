@@ -12,7 +12,7 @@ import { ISSUE_CATEGORY_LABELS, type DistrictDetailDTO, type DistrictStatsDTO } 
 import { AiDigest } from "./AiDigest";
 import { CloseButton } from "./CloseButton";
 
-export const GIS_ZHKH = "https://dom.gosuslugi.ru/";
+const GIS_ZHKH = "https://dom.gosuslugi.ru/";
 
 export function DistrictPanel({ district, stats }: { district: DistrictDetailDTO; stats: DistrictStatsDTO }) {
   useMapScene({ level: "district", districtId: district.id });

@@ -7,7 +7,7 @@ import { animate, motion, useMotionValue } from "framer-motion";
 import { useMap } from "@/components/map/MapContext";
 import { MapControls } from "@/components/map/MapControls";
 
-export const TAB_BAR = 64;
+const TAB_BAR = 64;
 const COLLAPSED = 112;
 const TOP_GAP = 64;
 // Room for the search and chips over the phone map, so the camera keeps targets visible.

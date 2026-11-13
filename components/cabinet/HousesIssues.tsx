@@ -11,7 +11,8 @@ import { plural } from "@/lib/health";
 import { houseHref, issueHref, workHref } from "@/lib/nav";
 import { ISSUE_CATEGORY_LABELS, WORK_KIND_LABELS } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { CabinetSection, dayLabel, Empty, useHouseSummaries, useCabinet } from "./shared";
+import { dayLabel } from "@/lib/utils";
+import { CabinetSection, Empty, useHouseSummaries, useCabinet } from "./shared";
 
 const HEALTH_TONE = { good: "text-turquoise", warn: "text-work", bad: "text-coral" } as const;
 

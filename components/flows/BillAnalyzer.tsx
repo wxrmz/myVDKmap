@@ -7,7 +7,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { monthLabel, rub, useCabinet } from "@/components/cabinet/shared";
+import { useCabinet } from "@/components/cabinet/shared";
+import { monthLabel, rub } from "@/lib/utils";
 import type { BillOutput } from "@/lib/ai/schemas";
 import { updateCabinet } from "@/lib/cabinet";
 import { houseHref } from "@/lib/nav";

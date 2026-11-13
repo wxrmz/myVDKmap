@@ -14,7 +14,8 @@ import type { PublicUser } from "@/lib/auth";
 import { DEFAULT_SETTINGS, FONT_SCALES, updateCabinet, type CabinetSettings } from "@/lib/cabinet";
 import { clearSession, setSessionUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
-import { CabinetSection, dayLabel, Empty, useHouseSummaries, useCabinet } from "./shared";
+import { dayLabel } from "@/lib/utils";
+import { CabinetSection, Empty, useHouseSummaries, useCabinet } from "./shared";
 
 const pill = (on: boolean) =>
   cn("h-9 rounded-full px-3.5 text-sm font-medium ring-1 transition-colors", on ? "bg-foreground text-background ring-foreground" : "bg-card ring-border hover:bg-muted");

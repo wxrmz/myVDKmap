@@ -51,8 +51,7 @@ export const BILL_KIND_LABELS: Record<BillKind, string> = {
   other: "Другая",
 };
 
-export const ISSUE_STATUSES = ["new", "sent", "in_progress", "resolved"] as const;
-export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+export type IssueStatus = "new" | "sent" | "in_progress" | "resolved";
 export const ISSUE_STATUS_LABELS: Record<IssueStatus, string> = {
   new: "Новая",
   sent: "Отправлена",
@@ -71,10 +70,9 @@ export const WORK_KIND_LABELS: Record<WorkKind, string> = {
   other: "Другое",
 };
 
-export const SEVERITIES = [1, 2, 3] as const;
-export type Severity = (typeof SEVERITIES)[number];
+export type Severity = 1 | 2 | 3;
 
-export interface DistrictDTO {
+interface DistrictDTO {
   id: string;
   name: string;
   population: number;
@@ -82,7 +80,7 @@ export interface DistrictDTO {
   color: string;
 }
 
-export interface MicrodistrictDTO {
+interface MicrodistrictDTO {
   id: string;
   name: string;
   districtId: string;
@@ -90,7 +88,7 @@ export interface MicrodistrictDTO {
   lng: number;
 }
 
-export interface ComplexDTO {
+interface ComplexDTO {
   id: string;
   name: string;
   developer: string | null;
@@ -103,7 +101,7 @@ export interface ComplexDTO {
   lng: number;
 }
 
-export interface ManagementCompanyDTO {
+interface ManagementCompanyDTO {
   id: string;
   name: string;
   rating: number;
@@ -111,7 +109,7 @@ export interface ManagementCompanyDTO {
   isDemo: boolean;
 }
 
-export interface BuildingDTO {
+interface BuildingDTO {
   id: string;
   address: string;
   lat: number;

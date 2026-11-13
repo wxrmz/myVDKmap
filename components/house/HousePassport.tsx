@@ -10,6 +10,7 @@ import { CloseButton } from "@/components/panel/CloseButton";
 import { plural } from "@/lib/health";
 import { breadcrumbs, complexHref, complexLabel, issueHref } from "@/lib/nav";
 import { ISSUE_CATEGORY_LABELS, ISSUE_KIND_LABELS, WORK_KIND_LABELS, type BuildingPassportDTO } from "@/lib/types";
+import { monthLabel, rub } from "@/lib/utils";
 import { SaveHouseButton } from "./CabinetButtons";
 import { HealthRing } from "./HealthRing";
 import { Section } from "./Section";
@@ -28,11 +29,6 @@ function daysAgo(iso: string) {
 }
 
 const day = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-const period = (p: string) => {
-  const s = new Date(`${p}-01T00:00:00`).toLocaleDateString("ru-RU", { month: "long" });
-  return `${s[0].toUpperCase()}${s.slice(1)} ${p.slice(0, 4)}`;
-};
-const rub = (n: number) => `${n.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽`;
 
 const external = "inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline";
 
@@ -230,7 +226,7 @@ export function HousePassport({ passport }: { passport: BuildingPassportDTO }) {
           <ul className="flex flex-col gap-1.5 text-sm">
             {bills.map((bill) => (
               <li key={bill.id} className="flex justify-between">
-                <span>{period(bill.period)}</span>
+                <span>{monthLabel(bill.period)}</span>
                 <span className="font-medium tabular-nums">{rub(bill.total)}</span>
               </li>
             ))}

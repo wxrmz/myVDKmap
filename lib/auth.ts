@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 
 const scryptAsync = promisify(scrypt) as (password: string, salt: string, keylen: number) => Promise<Buffer>;
 const KEY_LENGTH = 64;
-export const SESSION_COOKIE = "vdk_session";
+const SESSION_COOKIE = "vdk_session";
 const SESSION_DAYS = 30;
 
 // --- validation ---

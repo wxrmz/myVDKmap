@@ -1,19 +1,9 @@
 "use client";
 
-// Shared bits of the cabinet (and flows): live cabinet hooks, formatters, section frame, empty state, saved house summaries.
+// Shared bits of the cabinet (and flows): live cabinet hooks, section frame, empty state, saved house summaries.
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { CABINET_EVENT, DEFAULT_SETTINGS, rawCabinet, readRaw, type Cabinet } from "@/lib/cabinet";
 import type { HouseSummaryDTO } from "@/lib/types";
-
-export const rub = (n: number) => `${n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
-
-/** «2026-11» → «Ноябрь 2026». */
-export function monthLabel(period: string) {
-  const s = new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)) - 1, 1).toLocaleDateString("ru-RU", { month: "long" });
-  return `${s[0].toUpperCase()}${s.slice(1)} ${period.slice(0, 4)}`;
-}
-
-export const dayLabel = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 
 export function CabinetSection({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (

@@ -8,12 +8,11 @@ import { SupportButton } from "@/components/house/CabinetButtons";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { houseHref } from "@/lib/nav";
 import { ISSUE_CATEGORY_LABELS, ISSUE_KIND_LABELS, type IssueDTO } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, dayLabel } from "@/lib/utils";
 import { IssueStatusBadge } from "./badges";
 import { CloseButton } from "./CloseButton";
 import { IssueVotes, type IssueVotesState } from "./IssueVotes";
 
-const date = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 
 export function IssuePanel({
   issue: i,
@@ -46,7 +45,7 @@ export function IssuePanel({
           {i.closedByResidents && <span className="text-xs text-muted-foreground">по отзывам жителей</span>}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">{i.title}</h1>
-        <p className="text-sm text-muted-foreground">Отмечено {date(i.createdAt)}</p>
+        <p className="text-sm text-muted-foreground">Отмечено {dayLabel(i.createdAt)}</p>
         <CloseButton href={i.buildingId ? houseHref(i.buildingId) : "/"} label="Закрыть обращение" />
       </header>
 

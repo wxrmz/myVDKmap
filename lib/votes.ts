@@ -3,7 +3,7 @@
 /** «Уже решено» votes needed to close; the author's own vote counts as this many on its own. */
 export const CLOSE_VOTES = 3;
 
-export type Vote = { gone: boolean; author: boolean };
+type Vote = { gone: boolean; author: boolean };
 
 export function tally(votes: Vote[]) {
   const gone = votes.reduce((n, v) => n + (v.gone ? (v.author ? CLOSE_VOTES : 1) : 0), 0);

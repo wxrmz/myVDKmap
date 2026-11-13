@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { DEFAULT_SETTINGS, METER_KINDS, updateCabinet, type MeterKind } from "@/lib/cabinet";
 import { BILL_KIND_LABELS, BILL_KINDS } from "@/lib/types";
 import { cn, norm } from "@/lib/utils";
-import { CabinetSection, dayLabel, Empty, monthLabel, rub, useHouseSummaries, useCabinet } from "./shared";
+import { dayLabel, monthLabel, rub } from "@/lib/utils";
+import { CabinetSection, Empty, useHouseSummaries, useCabinet } from "./shared";
 
 const isCapRepair = (name: string) => /капремонт|капитальн/.test(norm(name));
 

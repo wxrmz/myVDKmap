@@ -65,10 +65,7 @@ export const CabinetSchema = z.object({
   settings: Settings.nullable().catch(null),
 });
 export type Cabinet = z.infer<typeof CabinetSchema>;
-export type CabinetIssue = z.infer<typeof IssueEntry>;
-export type CabinetBill = z.infer<typeof BillEntry>;
 export type MeterKind = (typeof METER_KINDS)[number];
-export type ReportDraft = z.infer<typeof Draft>;
 export type CabinetSettings = z.infer<typeof Settings>;
 
 export const DEFAULT_SETTINGS: CabinetSettings = {
@@ -177,11 +174,10 @@ export function stopCabinetSync() {
 }
 
 // --- helpers used by the passport and the map ---
-export const getSavedHouses = () => getCabinet().houses;
 
 /** Returns whether the house is saved after the toggle. */
 export function toggleSavedHouse(houseId: string) {
-  const saved = !getSavedHouses().includes(houseId);
+  const saved = !getCabinet().houses.includes(houseId);
   updateCabinet((c) => ({ ...c, houses: saved ? [...c.houses, houseId] : c.houses.filter((h) => h !== houseId) }));
   return saved;
 }
