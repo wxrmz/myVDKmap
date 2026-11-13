@@ -2,7 +2,7 @@
 
 // 2GIS map (§5.2): district polygons with hover overlay, React markers in HtmlMarker portals, camera per scene,
 // cached styles for an instant theme switch, `map:ready` for the splash.
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -20,7 +20,7 @@ const KEY = process.env.NEXT_PUBLIC_2GIS_KEY ?? "";
 const STYLES = { light: "c080bb6a-8134-4993-93a1-5b4d8c36a59b", dark: "e05ac437-fcc2-4845-ad74-b1de9ce07555" };
 type Theme = keyof typeof STYLES;
 const START_CENTER = [132.023, 43.196];
-const START_ZOOM = 11.5;
+const START_ZOOM = 11.2;
 const PITCH: Record<MapLevel, number> = { city: 0, district: 35, complex: 55, house: 60 };
 const ZOOM = { complex: 16, house: 17 };
 const FLY_MS = 1400;
@@ -406,9 +406,24 @@ function Marker({
 }) {
   const [el] = useState(() => document.createElement("div"));
   const { lat, lng } = at;
-  useEffect(() => {
+  // Layout effect: its cleanup runs before React empties the portal, so the content can be snapshotted for the exit fade.
+  useLayoutEffect(() => {
     const marker = new api.gl.HtmlMarker(api.map, { coordinates: [lng, lat], html: el, zIndex: z, interactive, maxZoom });
-    return () => marker.destroy();
+    return () => {
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return marker.destroy();
+      const ghost = [...el.childNodes].map((n) => n.cloneNode(true));
+      queueMicrotask(() => {
+        el.replaceChildren(...ghost);
+        el.style.pointerEvents = "none";
+        // 2GIS positions `el` with its own transform, so the fade runs on the content inside it.
+        const target = (el.firstElementChild?.firstElementChild ?? el.firstElementChild ?? el) as HTMLElement;
+        target.animate([{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(0.5)" }], {
+          duration: 200,
+          easing: "ease-in",
+          fill: "forwards",
+        }).finished.finally(() => marker.destroy());
+      });
+    };
   }, [api, el, lat, lng, z, interactive, maxZoom]);
   return createPortal(<div className="-translate-x-1/2 -translate-y-1/2">{children}</div>, el);
 }
@@ -437,7 +452,7 @@ function Pin({
       <button
         type="button"
         aria-label={label}
-        className={cn("block cursor-pointer animate-in fade-in zoom-in-50", className)}
+        className={cn("block cursor-pointer animate-in fade-in zoom-in-50 duration-300 ease-out", className)}
         onMouseEnter={tip && ((e) => api.ui.marker(tip, e.currentTarget))}
         onMouseLeave={tip && (() => api.ui.marker(null))}
         onClick={(e) => onClick(e.currentTarget)}
@@ -475,8 +490,8 @@ const Markers = memo(function Markers({
   // Complexes, issues and works appear only once a district is chosen, and only inside it.
   const focusShape = scene.level !== "city" && scene.districtId ? shapes[scene.districtId] : undefined;
   const districtComplexes = useMemo(
-    () => (focusShape ? complexes.filter((c) => c.districtId === scene.districtId) : []),
-    [complexes, focusShape, scene.districtId],
+    () => (focusShape ? complexes.filter((c) => insideDistrict(focusShape, c)) : []),
+    [complexes, focusShape],
   );
   const districtIssues = useMemo(
     () => (focusShape ? issues.filter((i) => insideDistrict(focusShape, i)) : []),
