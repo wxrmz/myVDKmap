@@ -149,11 +149,14 @@ details[open]::details-content {
   block-size: auto;
 }
 
-/* Theme switch: the old and new page crossfade (ThemeToggle starts a View Transition). */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 450ms;
-  animation-timing-function: ease-in-out;
+/* Theme switch: every colour eases to the new theme while ThemeToggle holds this class (the map crossfades itself).
+   Beats next-themes' «transition: none !important» by specificity. */
+html.theme-fading,
+html.theme-fading *,
+html.theme-fading *::before,
+html.theme-fading *::after {
+  transition: background-color 450ms ease-in-out, color 450ms ease-in-out, border-color 450ms ease-in-out,
+    fill 450ms ease-in-out, stroke 450ms ease-in-out, box-shadow 450ms ease-in-out, outline-color 450ms ease-in-out !important;
 }
 
 /* Splash (§5.10): CSS so it animates before JS loads. */

@@ -1,18 +1,14 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { flushSync } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** `theme:switch` detail: the map pushes into `waits` a promise that resolves when its new style is in. */
-export type ThemeSwitchDetail = { theme: "light" | "dark"; waits: Promise<unknown>[] };
-
 const noopSubscribe = () => () => {};
-let switching = false;
+let fadeTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
@@ -20,21 +16,14 @@ export function ThemeToggle({ className }: { className?: string }) {
   const isDark = resolvedTheme === "dark";
 
   function toggle() {
-    if (switching) return;
-    const next = isDark ? "light" : "dark";
-    // Map first (it lays a still of itself and switches style), then the page; both fade together once the style is in.
-    const apply = async () => {
-      const waits: Promise<unknown>[] = [];
-      window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
-      flushSync(() => setTheme(next));
-      await Promise.all(waits);
-    };
-    // The page crossfades from the old theme to the new one (CSS in globals.css); the map crossfades itself (MapView).
-    if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return void apply();
-    switching = true;
-    const transition = document.startViewTransition(apply);
-    transition.ready.catch(() => {}); // a skipped transition rejects `ready`; the theme is applied anyway
-    transition.finished.finally(() => (switching = false));
+    const root = document.documentElement;
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Colours ease to the new theme (CSS in globals.css); the map crossfades itself in MapView.
+      root.classList.add("theme-fading");
+      clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(() => root.classList.remove("theme-fading"), 700); // 450 ms fade plus slack for a busy first frame
+    }
+    setTheme(isDark ? "light" : "dark");
   }
 
   return (
