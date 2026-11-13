@@ -143,7 +143,7 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
     const shape = id ? shapes[id] : undefined;
     const color = districts.find((d) => d.id === id)?.color;
     if (!id || !shape || !color) return;
-    const alpha = focus ? 0.3 : theme === "light" ? 0.24 : 0.23;
+    const alpha = focus ? 0.12 : theme === "light" ? 0.24 : 0.23;
     lit = {
       id,
       polygons: shape.parts.map(
@@ -222,8 +222,6 @@ export function MapView({ className }: { className?: string }) {
   const { resolvedTheme } = useTheme();
   const theme: Theme = resolvedTheme === "dark" ? "dark" : "light";
   const focus = scene.level === "city" ? undefined : scene.districtId;
-  // Only the district level paints its district at 0.6; deeper levels keep every district dimmed so houses stay visible.
-  const current = scene.level === "district" ? focus : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const styleTheme = useRef<Theme | null>(null);
   const insetsRef = useRef(insets);
@@ -306,14 +304,15 @@ export function MapView({ className }: { className?: string }) {
     const polygons = districts.flatMap((d) => {
       const shape = shapes[d.id];
       if (!shape) return [];
-      const dim = focus !== undefined && current !== d.id;
-      const fill = focus === undefined ? (light ? 0.34 : 0.2) : dim ? 0.06 : 0.6;
+      // A chosen district keeps only its border so the map inside stays readable; the others stay visible but lighter.
+      const chosen = focus === d.id;
+      const fill = focus === undefined ? (light ? 0.34 : 0.2) : chosen ? 0.05 : light ? 0.18 : 0.12;
       return shape.parts.map((coordinates) => {
         const p = new gl.Polygon(map, {
           coordinates,
           color: rgba(d.color, fill),
-          strokeColor: rgba(d.color, dim ? 0.3 : 1),
-          strokeWidth: light ? 2 : 1,
+          strokeColor: rgba(d.color, 1),
+          strokeWidth: (light ? 2 : 1) + (chosen ? 1 : 0),
         });
         p.on("mouseover", (e) => ui.district(d.id, e.point));
         p.on("mousemove", (e) => ui.district(d.id, e.point));
@@ -324,7 +323,7 @@ export function MapView({ className }: { className?: string }) {
     });
     ui.restyle();
     return () => polygons.forEach((p) => p.destroy());
-  }, [api, districts, shapes, theme, focus, current]);
+  }, [api, districts, shapes, theme, focus]);
 
   useEffect(() => {
     api?.map.setPadding(insets, { duration: 300 });
