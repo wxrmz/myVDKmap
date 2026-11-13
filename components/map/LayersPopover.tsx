@@ -40,7 +40,7 @@ export function LayersPopover({
                 aria-checked={on}
                 onClick={() => setLayers((l) => ({ ...l, [key]: !l[key] }))}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl p-2 text-left transition-[background-color,transform] duration-150 active:scale-[0.98]",
+                  "flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors duration-150",
                   on ? "bg-muted/40 dark:bg-accent" : "bg-muted hover:bg-muted/60 dark:hover:bg-accent/60",
                 )}
               >
