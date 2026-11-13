@@ -1,7 +1,7 @@
 # filemap
 
 - `START_PROMPT.md` — normative product spec (§N)
-- `middleware.ts` — every full page load redirects to `/` (start page), except `/house/…` and `/issue/…`
+- `middleware.ts` — every full page load redirects to `/` (start page), except `/house/…` and `/issue/…` (shared links); a reload of those goes home via the script in `app/layout.tsx`
 - `README.md` — project overview and run instructions (RU)
 - `CLAUDE.md` — agent rules and commands
 - `docs/SPEC.md` — decisions on top of START_PROMPT
