@@ -6,6 +6,7 @@ import { ChevronRight, ExternalLink, Receipt, TriangleAlert } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { useMapScene } from "@/components/map/MapContext";
 import { IssueStatusBadge } from "@/components/panel/badges";
+import { CloseButton } from "@/components/panel/CloseButton";
 import { plural } from "@/lib/health";
 import { breadcrumbs, complexHref, complexLabel } from "@/lib/nav";
 import { ISSUE_CATEGORY_LABELS, WORK_KIND_LABELS, type BuildingPassportDTO } from "@/lib/types";
@@ -64,7 +65,9 @@ export function HousePassport({ passport, issueId }: { passport: BuildingPasspor
 
   return (
     <div className="flex flex-col gap-4 p-4 animate-in fade-in duration-300">
-      <header className="flex flex-col gap-3">
+      <header className="relative flex flex-col gap-3 pr-8">
+        {/* One level up: the house's ЖК, else its district. */}
+        <CloseButton href={crumbs.at(-1)?.href ?? "/"} label="Закрыть дом" />
         <nav aria-label="Где дом" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
           {crumbs.map((c, i) => (
             <span key={c.href} className="flex items-center gap-1">

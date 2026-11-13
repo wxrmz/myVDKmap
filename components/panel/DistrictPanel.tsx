@@ -2,7 +2,7 @@
 
 // District level (§5.3): header, metrics, frequent issues, management companies, microdistricts and complexes, AI digest.
 import Link from "next/link";
-import { ChevronRight, ExternalLink, X } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMap, useMapScene } from "@/components/map/MapContext";
 import { plural } from "@/lib/health";
@@ -10,6 +10,7 @@ import { complexHref, complexLabel } from "@/lib/nav";
 import { ISSUE_CATEGORY_LABELS, type DistrictDetailDTO, type DistrictStatsDTO } from "@/lib/types";
 import { AiDigest } from "./AiDigest";
 import { ComplexStatusBadge } from "./badges";
+import { CloseButton } from "./CloseButton";
 
 export const GIS_ZHKH = "https://dom.gosuslugi.ru/";
 
@@ -26,7 +27,7 @@ export function DistrictPanel({ district, stats }: { district: DistrictDetailDTO
 
   return (
     <div className="flex flex-col gap-4 p-4 animate-in fade-in duration-300">
-      <header className="flex items-start gap-3">
+      <header className="relative flex items-start gap-3 pr-8">
         <span className="mt-2.5 size-3 shrink-0 rounded-full" style={{ background: district.color }} />
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">{district.name} район</h1>
@@ -35,14 +36,7 @@ export function DistrictPanel({ district, stats }: { district: DistrictDetailDTO
             {district.populationYear} года
           </p>
         </div>
-        <Link
-          href="/"
-          prefetch
-          aria-label="Закрыть район"
-          className="-mt-1 -mr-1 grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <X className="size-5" />
-        </Link>
+        <CloseButton href="/" label="Закрыть район" />
       </header>
 
       <div className="grid grid-cols-3 gap-2">

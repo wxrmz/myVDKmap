@@ -2,10 +2,11 @@
 
 // Complex level (§5.3): status, developer, floors and the list of houses.
 import { useMapScene } from "@/components/map/MapContext";
-import { complexLabel } from "@/lib/nav";
+import { complexLabel, districtHref } from "@/lib/nav";
 import type { ComplexDetailDTO } from "@/lib/types";
 import { ComplexStatusBadge } from "./badges";
 import { BuildingLink } from "./BuildingLink";
+import { CloseButton } from "./CloseButton";
 
 export function ComplexCard({ complex }: { complex: ComplexDetailDTO }) {
   useMapScene({
@@ -22,7 +23,8 @@ export function ComplexCard({ complex }: { complex: ComplexDetailDTO }) {
 
   return (
     <div className="flex flex-col gap-4 p-4 animate-in fade-in duration-300">
-      <header className="flex flex-col gap-1.5">
+      <header className="relative flex flex-col items-start gap-1.5 pr-8">
+        <CloseButton href={districtHref(complex.district.id)} label="Закрыть ЖК" />
         <ComplexStatusBadge status={complex.status} />
         <h1 className="text-2xl font-semibold tracking-tight">{complexLabel(complex.name)}</h1>
         {complex.street && <p className="text-muted-foreground">{complex.street}</p>}

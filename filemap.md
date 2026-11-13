@@ -20,7 +20,7 @@
 - `app/(map)/me/page.tsx` — `/me`: `CabinetPage`
 - `components/map/MapShell.tsx` — shell §5.1: rail, map beside the rail, panel on map pages, flow pages as an overlay (desktop 680 px card, phone full-screen sheet; hidden while `data-map-pick`), tab bar; applies the font size setting, loads the session
 - `components/map/Rail.tsx` — `Rail` (desktop 88 px), `TabBar` (phone), `isMapPath`; all links `prefetch`
-- `components/panel/PanelSheet.tsx` — desktop 420 px panel column under the search; phone bottom sheet (112 px / half / 64 px from top, drag or tap the handle); sets map insets
+- `components/panel/PanelSheet.tsx` — desktop 384 px panel column under the search; phone bottom sheet (112 px / half / 64 px from top, drag or tap the handle); sets map insets
 - `components/map/MapControls.tsx` — search + chips (breadcrumbs from district level, «Мой дом»); on phones round theme and layers buttons
 - `components/map/LayersPopover.tsx` — «Слои» popover §5.2
 - `components/search/SearchBox.tsx` — search §5.9 (`/` hotkey, rotating placeholder, debounced `/api/search`, results card); `SEARCH_INPUT_ID`; `onSelect` mode lists houses only (address step of /report)
@@ -28,6 +28,7 @@
 - `components/panel/AiDigest.tsx` — district digest from `/api/ai/digest` (hidden on error)
 - `components/panel/BuildingLink.tsx` — house row (address, floors if known, open issues)
 - `components/panel/badges.tsx` — `IssueStatusBadge`, `ComplexStatusBadge`
+- `components/panel/CloseButton.tsx` — top-right cross of district, ЖК and house panels (goes one level up)
 - `components/house/HousePassport.tsx` — passport §5.4: header, health, sections, ГИС ЖКХ and capital-repair fund links, actions
 - `components/house/HealthRing.tsx` — health ring 0–100 with breakdown
 - `components/house/Section.tsx` — passport block in `panel-box`
