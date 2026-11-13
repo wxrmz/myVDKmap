@@ -19,39 +19,22 @@ export function ThemeToggle({ className }: { className?: string }) {
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const isDark = resolvedTheme === "dark";
 
-  async function toggle() {
+  function toggle() {
     if (switching) return;
-    switching = true;
     const next = isDark ? "light" : "dark";
-    // Map first (it pushes "style applied" into `waits`), then the page; the screen is dark meanwhile.
+    // Map first (it pushes "style applied" into `waits`), then the page.
     const apply = async () => {
       const waits: Promise<unknown>[] = [];
       window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
       flushSync(() => setTheme(next));
-      await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 600))]);
+      await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 300))]);
     };
-    try {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return await apply();
-      // The page itself dims to dark, switches, brightens back. Timers, not animation events: it always comes back.
-      const root = document.documentElement;
-      const fade = (brightness: number, ms: number) => {
-        root.style.transition = `filter ${ms}ms ease-in-out`;
-        root.style.filter = `brightness(${brightness})`;
-        return new Promise((r) => setTimeout(r, ms));
-      };
-      try {
-        root.style.filter = "brightness(1)";
-        root.getBoundingClientRect(); // commit the start so the transition runs
-        await fade(0, 220);
-        await apply();
-        await fade(1, 280);
-      } finally {
-        root.style.transition = "";
-        root.style.filter = "";
-      }
-    } finally {
-      switching = false;
-    }
+    // Every colour, the map included, crossfades from the old theme to the new one (CSS in globals.css).
+    if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return void apply();
+    switching = true;
+    const transition = document.startViewTransition(apply);
+    transition.ready.catch(() => {}); // a skipped transition rejects `ready`; the theme is applied anyway
+    transition.finished.finally(() => (switching = false));
   }
 
   return (
@@ -59,7 +42,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       variant="outline"
       size="icon"
       aria-label="Сменить тему"
-      onClick={toggle}
+      // Starts on press, not release: the ~50 ms the map needs for its new style pass while the button is still held.
+      onPointerDown={(e) => e.button === 0 && e.isPrimary && toggle()}
+      // Keyboard (Enter / Space) has no pointerdown; its click comes with detail 0.
+      onClick={(e) => e.detail === 0 && toggle()}
       className={cn("relative size-11 rounded-full [&_svg:not([class*='size-'])]:size-5", className)}
     >
       {mounted && (

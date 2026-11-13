@@ -149,6 +149,13 @@ details[open]::details-content {
   block-size: auto;
 }
 
+/* Theme switch: the old and new page crossfade (ThemeToggle starts a View Transition). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 450ms;
+  animation-timing-function: ease-in-out;
+}
+
 /* Splash (§5.10): CSS so it animates before JS loads. */
 .splash-fill {
   transform-origin: left;
