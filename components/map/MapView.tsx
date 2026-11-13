@@ -291,11 +291,11 @@ export function MapView({ className }: { className?: string }) {
       const { theme: next, waits } = (e as CustomEvent<ThemeSwitchDetail>).detail;
       if (styleTheme.current === next) return;
       styleTheme.current = next;
-      // Wait for `idle`, not just `styleload`: the first switch still has to fetch the new style's icons and tiles,
-      // and revealing before that shows the map repainting under the circle.
-      const loaded = new Promise<void>((resolve) => api.map.once("styleload", () => api.map.once("idle", () => resolve())));
+      // Only `styleload`: the toggle runs inside a view transition, where animation frames are paused.
+      // The reveal shows the new page live, so the map finishes drawing inside the growing circle.
+      const loaded = new Promise<void>((resolve) => api.map.once("styleload", () => resolve()));
       api.map.setStyleById(STYLES[next]).catch(() => {});
-      waits.push(Promise.race([loaded, new Promise((r) => setTimeout(r, 1500))]));
+      waits.push(loaded);
     };
     window.addEventListener("theme:switch", onSwitch);
     return () => window.removeEventListener("theme:switch", onSwitch);

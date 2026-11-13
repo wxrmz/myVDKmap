@@ -21,22 +21,21 @@ export function ThemeToggle({ className }: { className?: string }) {
   async function toggle(e: React.MouseEvent<HTMLButtonElement>) {
     const next = isDark ? "light" : "dark";
     const rect = e.currentTarget.getBoundingClientRect();
-    const waits: Promise<unknown>[] = [];
-    window.dispatchEvent(
-      new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }),
-    );
-    // Up to 1.2 s: only the very first switch takes that long (new style assets); later ones resolve in ~50 ms.
-    await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 1200))]);
+    // Switch the map first (it pushes a promise into `waits`), then the page; resolves when the new map style is applied.
+    const apply = async () => {
+      const waits: Promise<unknown>[] = [];
+      window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
+      flushSync(() => setTheme(next));
+      await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 300))]);
+    };
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!document.startViewTransition || reduce) {
-      setTheme(next);
-      return;
-    }
+    if (!document.startViewTransition || reduce) return void apply();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
     const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    const transition = document.startViewTransition(() => flushSync(() => setTheme(next)));
+    // The old frame is captured at once and stays frozen while `apply` runs, so the map never visibly repaints mid-switch.
+    const transition = document.startViewTransition(apply);
     await transition.ready;
     document.documentElement.animate(
       { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
