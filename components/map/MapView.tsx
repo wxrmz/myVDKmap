@@ -19,8 +19,8 @@ import { clusterByDistance, insideDistrict, type DistrictShape } from "./shapes"
 const KEY = process.env.NEXT_PUBLIC_2GIS_KEY ?? "";
 const STYLES = { light: "c080bb6a-8134-4993-93a1-5b4d8c36a59b", dark: "e05ac437-fcc2-4845-ad74-b1de9ce07555" };
 type Theme = keyof typeof STYLES;
-const START_CENTER = [131.93, 43.12];
-const START_ZOOM = 10;
+const START_CENTER = [131.95, 43.16];
+const START_ZOOM = 11.3;
 const PITCH: Record<MapLevel, number> = { city: 0, district: 35, complex: 55, house: 60 };
 const ZOOM = { complex: 16, house: 17 };
 const FLY_MS = 1400;
@@ -513,7 +513,7 @@ const Markers = memo(function Markers({
         if (!shape) return null;
         return (
           <Marker key={`label-${d.id}`} api={api} at={{ lng: shape.label[0], lat: shape.label[1] }} z={0} interactive={false} maxZoom={14}>
-            <span className="block text-sm font-semibold whitespace-nowrap text-foreground [text-shadow:0_0_2px_var(--background),0_0_4px_var(--background),0_0_8px_var(--background)]">
+            <span className="block text-sm font-semibold whitespace-nowrap text-white [text-shadow:0_0_2px_rgb(0_0_0/0.7),0_0_6px_rgb(0_0_0/0.5)]">
               {d.name}
             </span>
           </Marker>
