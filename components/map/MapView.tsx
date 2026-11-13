@@ -85,9 +85,33 @@ function redrawUnderStill(map: MapGL.Map, style: string) {
       done = true;
       resolve(() => still.remove());
     };
-    setTimeout(ready, 600); // a slow load must not hold the switch
-    // Measured: the map is ~98 % redrawn ~100 ms after `styleload`; the last labels land while the circle is opening.
-    map.setStyleById(style).then(() => setTimeout(ready, 100), ready);
+    setTimeout(ready, 1000); // a slow load must not hold the switch
+    // `styleload` fires before the canvas is redrawn (on the server by 50–100 ms), so watch the pixels instead:
+    // ready once the brightness has jumped (new theme) and then held still for two frames (labels in place).
+    const probe = document.createElement("canvas");
+    probe.width = probe.height = 16;
+    const ctx = probe.getContext("2d", { willReadFrequently: true });
+    const brightness = () => {
+      if (!ctx) return 0;
+      ctx.drawImage(src, 0, 0, 16, 16);
+      const d = ctx.getImageData(0, 0, 16, 16).data;
+      let sum = 0;
+      for (let i = 0; i < d.length; i += 4) sum += d[i] + d[i + 1] + d[i + 2];
+      return sum / (d.length / 4) / 3;
+    };
+    const start = brightness();
+    let prev = start;
+    let jumped = false;
+    let calm = 0;
+    const watch = () => {
+      if (done) return;
+      const b = brightness();
+      if (!jumped) jumped = Math.abs(b - start) > 30;
+      else if ((calm = Math.abs(b - prev) < 2 ? calm + 1 : 0) >= 2) return ready();
+      prev = b;
+      requestAnimationFrame(watch);
+    };
+    map.setStyleById(style).then(() => requestAnimationFrame(watch), ready);
   });
 }
 
