@@ -21,11 +21,10 @@ export function ThemeToggle({ className }: { className?: string }) {
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const isDark = resolvedTheme === "dark";
 
-  async function toggle(button: HTMLButtonElement) {
+  async function toggle() {
     const next = isDark ? "light" : "dark";
-    const rect = button.getBoundingClientRect();
     // Map first: it redraws hidden under a still of itself. Then the page, with the still taken away in the same step,
-    // so the circle opens on the new page and the new map together.
+    // so the new page and the new map fade in together.
     const waits: Promise<() => void>[] = [];
     window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
     const reveals = await Promise.all(waits);
@@ -36,14 +35,12 @@ export function ThemeToggle({ className }: { className?: string }) {
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!document.startViewTransition || reduce) return apply();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-    const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
     const transition = document.startViewTransition(apply);
     await transition.ready;
+    // Plain fade of the new frame over the old one: two still snapshots, composited by the GPU.
     document.documentElement.animate(
-      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
-      { duration: 450, easing: "cubic-bezier(0.4, 0, 0.2, 1)", pseudoElement: "::view-transition-new(root)" },
+      { opacity: [0, 1] },
+      { duration: 300, easing: "ease-out", pseudoElement: "::view-transition-new(root)" },
     );
   }
 
@@ -53,9 +50,9 @@ export function ThemeToggle({ className }: { className?: string }) {
       size="icon"
       aria-label="Сменить тему"
       // Starts on press, not release: the ~50 ms the map needs for its new style pass while the button is still held.
-      onPointerDown={(e) => e.button === 0 && e.isPrimary && toggle(e.currentTarget)}
+      onPointerDown={(e) => e.button === 0 && e.isPrimary && toggle()}
       // Keyboard (Enter / Space) has no pointerdown; its click comes with detail 0.
-      onClick={(e) => e.detail === 0 && toggle(e.currentTarget)}
+      onClick={(e) => e.detail === 0 && toggle()}
       className={cn("relative size-11 rounded-full [&_svg:not([class*='size-'])]:size-5", className)}
     >
       {mounted && (
