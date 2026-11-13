@@ -120,36 +120,66 @@ export async function classifyIssue({ text, address, photo }: ClassifyInput): Pr
 const MONTHS = Array.from({ length: 12 }, (_, i) => periodLabel(`2000-${String(i + 1).padStart(2, "0")}`).split(" ")[0]);
 const num = (s: string) => Number(s.replace(/[\s ]/g, "").replace(",", "."));
 const SKIP_LINE = /^(адрес|площадь|расч|услуга|единый|лицев|период|плательщик|получатель)/;
+/** A sum at the end of a line, «1234,56» or «1 234,56»: in «982.02 1 956.99» it is 1 956.99, not 21 956.99. */
+const MONEY = /(?<![\d.,])((?:\d{1,3}(?:[ \u00a0]\d{3})+|\d+)[.,]\d{2})\s*(?:₽|руб\.?|рублей)?\s*$/;
+/** Unit printed after a service name in GIS ЖКХ receipts: «м[3*]», «м[2*] общ. пл», «кВт.ч». */
+const UNIT = /\s+(м\[[23]\*?\]|м[23²³]|квт\.?\s?ч)(\s+общ\.?\s*пл\.?)?$/iu;
+const UNIT_LABEL: Record<string, string> = { 2: "м²", 3: "м³" };
 
-/** Lines of a receipt as text: the `demoBillText` format («name | volume unit × tariff | amount») or «name … amount». */
+/**
+ * Lines of a receipt as text: the `demoBillText` format («name | volume unit × tariff | amount»), «name … amount», or the
+ * text of a GIS ЖКХ payment document. In the latter, services are only the rows of the «Расчет размера платы» table: the
+ * payee block above it and the reference volumes below it are not charges.
+ */
 function parseBillText(text: string): BillRaw {
   let period: string | undefined;
   let total: number | undefined;
+  let periodSum: number | undefined;
   const items: BillItem[] = [];
-  for (const line of text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)) {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const table = lines.findIndex((l) => /^расч[её]т размера платы/.test(norm(l)));
+  let inTable = table < 0;
+  let partOf = false; // rows after «в том числе» are parts of the row above, already in its sum
+  lines.forEach((line, n) => {
     const l = norm(line);
-    const month = /период[^\p{L}]*([\p{L}]+)\s+(\d{4})/u.exec(l) ?? /период\D*(\d{2})[./](\d{4})/.exec(l);
+    if (n === table) inTable = true;
+    const month =
+      /период[^\p{L}]*([\p{L}]+)\s+(\d{4})/u.exec(l) ?? /период\D*(\d{2})[./](\d{4})/.exec(l) ?? /^за\s+([\p{L}]+)\s*[-–—]?\s*(\d{4})/u.exec(l);
     if (month && !period) {
-      const m = /^\d+$/.test(month[1]) ? Number(month[1]) : MONTHS.indexOf(month[1]) + 1;
+      const m = /^\d+$/.test(month[1]) ? Number(month[1]) : MONTHS.findIndex((x) => norm(x) === month[1]) + 1;
       if (m >= 1 && m <= 12) period = `${month[2]}-${String(m).padStart(2, "0")}`;
-      continue;
+      return;
     }
-    const money = /(\d[\d\s ]*[.,]\d{2})\s*(?:₽|руб\.?)?\s*$/.exec(line);
+    const money = MONEY.exec(line);
+    if (/сумма к оплате за расч[её]тный период/.test(l)) {
+      if (money && periodSum === undefined) periodSum = num(money[1]);
+      return;
+    }
     if (/итого|к оплате|всего/.test(l)) {
-      if (money) total = num(money[1]);
-      continue;
+      // The first «Итого»: later ones are for penalties or include old debt.
+      if (money && total === undefined) total = num(money[1]);
+      if (/^итого/.test(l)) inTable = false; // the table ends at its «Итого»; column headers also say «к оплате»
+      return;
     }
-    if (!money || SKIP_LINE.test(l)) continue;
+    if (/^в том числе/.test(l)) {
+      partOf = true;
+      return;
+    }
+    if (!inTable || !money || SKIP_LINE.test(l)) return;
     const parts = line.split("|").map((p) => p.trim());
-    // Without «|» the name ends before the first number standing apart (volume, area, tariff): «Взнос … 54,30 м² × 12,00 651,60».
-    const name = (parts.length > 1 ? parts[0] : line.slice(0, money.index).replace(/\s\d[\s\S]*$/, "")).replace(/[\s.…:–—-]+$/, "").trim();
-    if (!/\p{L}/u.test(name)) continue;
-    const item: BillItem = { name, amount: num(money[1]) };
+    // Without «|» the name ends before the first number or «-» column standing apart: «Взнос … 54,30 м² × 12,00 651,60».
+    let name = (parts.length > 1 ? parts[0] : line.slice(0, money.index).replace(/\s(?:\d|-\s)[\s\S]*$/, "")).replace(/[\s.…:–—-]+$/, "").trim();
+    const unit = UNIT.exec(name);
+    if (unit) name = name.slice(0, unit.index).trim();
+    if (!/\p{L}/u.test(name)) return;
+    const item: BillItem = { name: partOf ? `в т. ч. ${name}` : name, amount: num(money[1]) };
+    if (unit) item.unit = UNIT_LABEL[unit[1].replace(/\D/g, "")] ?? "кВт·ч";
     const use = /([\d.,]+)\s*(\S+)?\s*[×x*]\s*([\d\s.,]+?)\s*(?:₽|руб\.?)?$/.exec(parts.length > 2 ? parts.slice(1, -1).join(" ") : "");
     if (use) Object.assign(item, { volume: num(use[1]), ...(use[2] && { unit: use[2] }), tariff: num(use[3]) });
     items.push(item);
-  }
-  return { ...(period && { period }), items, total: total ?? Math.round(items.reduce((s, i) => s + i.amount, 0) * 100) / 100 };
+  });
+  const sum = Math.round(items.reduce((s, i) => s + i.amount, 0) * 100) / 100;
+  return { ...(period && { period }), items, total: periodSum ?? total ?? sum };
 }
 
 const glossary = (name: string) =>

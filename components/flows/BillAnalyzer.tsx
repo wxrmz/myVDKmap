@@ -146,8 +146,9 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
               <span className="text-lg font-semibold tabular-nums">{rub(bill.total)}</span>
             </div>
             <ul className="flex flex-col divide-y divide-border">
-              {bill.items.map((i) => (
-                <li key={i.name} className="flex gap-3 py-2.5">
+              {/* Index keys: a receipt can list the same service twice, and a repeated key left rows behind between tabs. */}
+              {bill.items.map((i, n) => (
+                <li key={n} className="flex gap-3 py-2.5">
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="font-medium">{i.plainName}</span>
                     <span className="text-sm text-muted-foreground">{i.explanation}</span>
@@ -184,10 +185,10 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
           <section className="flex flex-col gap-3">
             <h2 className="text-lg font-semibold">Что изменилось и что делать</h2>
             {bill.changes.length ? (
-              bill.changes.map((c) => {
+              bill.changes.map((c, n) => {
                 const Icon = c.deltaPercent >= 0 ? TrendingUp : TrendingDown;
                 return (
-                  <article key={c.item} className="panel-box flex flex-col gap-2">
+                  <article key={n} className="panel-box flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <Icon className={c.deltaPercent >= 0 ? "size-5 text-coral" : "size-5 text-turquoise"} />
                       <span className="flex-1 font-medium">{c.item}</span>
