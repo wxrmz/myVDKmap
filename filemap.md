@@ -18,13 +18,21 @@
 - `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `streetPattern`, `getWorkStreets` (§6.4)
 - `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
 - `lib/nav.ts` — hrefs (`districtHref`, `complexHref`, `houseHref`, `issueHref`, `workHref`), `complexLabel`, `breadcrumbs`
-- `lib/health.ts` — `computeHealth` (§6.5) with Russian plurals
+- `lib/health.ts` — `computeHealth` (§6.5), `plural` (Russian plurals)
 - `lib/streets.test.ts`, `lib/health.test.ts` — self-checks (`npx tsx <file>`)
 - `lib/ai/http.ts` — `apiError`, `parseBody` (8 MB limit, JSON, zod with Russian messages), `serverError`
 - `app/api/search/route.ts` — `GET /api/search?q=`
 - `app/api/issues/route.ts` — `GET /api/issues[?building=]`, `POST /api/issues` (zod, authority and house checks, `osm-…` houses created lazily)
 - `app/api/issues/[id]/support/route.ts` — `POST` «Меня тоже касается» → `{ supports }`
-- `lib/ai/schemas.ts` — zod AI schemas (minimal `DocSummary`; extended in task 8)
+- `lib/ai/schemas.ts` — zod schemas of the AI layer: route inputs and outputs of `classifyIssue`, `parseBill` (`BillRaw` → `BillOutput`), `summarizeDocument` (`DocSummary`, `DocumentOutput`), `districtDigest`
+- `lib/ai/index.ts` — AI facade (§6.1): `classifyIssue`, `parseBill`, `summarizeDocument` (+ house binding), `districtDigest`; provider from `AI_PROVIDER` (openai only with `AI_API_KEY` and `AI_MODEL`)
+- `lib/ai/mock.ts` — deterministic provider: keyword classification over the authority handbook, receipt text parser + `analyzeBill` (glossary, history, tariff/season changes), prepared or heuristic document summaries, `houseNumbers`, `bindBuildings`, `districtFacts`/`districtDigest`
+- `lib/ai/openai.ts` — OpenAI-compatible provider via fetch (`/chat/completions`, JSON mode, 20 s timeout); invalid answer → one retry → mock, network error → mock
+- `lib/ai/mock.test.ts` — self-check of the mock provider (needs the seeded DB)
+- `app/api/ai/classify/route.ts` — `POST` issue classification and appeal text
+- `app/api/ai/bill/route.ts` — `POST` receipt analysis (`demo`, `text` or `image`)
+- `app/api/ai/document/route.ts` — `POST` work announcement summary + bound houses
+- `app/api/ai/digest/route.ts` — `GET ?district=` district digest (404 «Район не найден»)
 - `lib/fixtures/` — demo bills and city-work documents (prepared, unchanged)
 - `data/` — prepared OSM and seed JSON (unchanged)
 - `public/geo/` — districts GeoJSON and complexes (unchanged)

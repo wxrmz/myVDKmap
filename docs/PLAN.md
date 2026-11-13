@@ -50,3 +50,6 @@ Next 15.5 + React 19 + TS strict + Tailwind v4 + tw-animate-css, eslint (flat co
 
 ## 11. Финал
 README по-русски (§8). Проверка §11 целиком: с нуля `npm install && npx prisma db push && npm run seed && npm run preview`, tsc, lint, все тесты, демо-сценарий §9 в браузере.
+
+## Перепланирование (экономия)
+Задачи 6+7 — один воркер medium; 9+10 — один воркер medium (после 6+7 и 8); 11 — оркестратор сам. Проверка: tsc, lint, самопроверки; демо-сценарий — в конце.

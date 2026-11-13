@@ -6,7 +6,7 @@ const SEVERITY_WEIGHT: Record<number, number> = { 1: 6, 2: 10, 3: 15 };
 const STALE_DAYS = 30;
 
 /** Russian plural: plural(5, ["жалоба", "жалобы", "жалоб"]) → "жалоб". */
-function plural(n: number, [one, few, many]: [string, string, string]) {
+export function plural(n: number, [one, few, many]: [string, string, string]) {
   const d = n % 10;
   const dd = n % 100;
   if (d === 1 && dd !== 11) return one;
