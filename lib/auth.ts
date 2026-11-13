@@ -1,7 +1,7 @@
 // Server auth (§5.8): scrypt passwords, random session token in an httpOnly cookie, only its SHA-256 in the DB.
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { User } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -47,7 +47,8 @@ export async function startSession(userId: string) {
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // Secure only over HTTPS (nginx sets X-Forwarded-Proto), so login also works on a plain-HTTP server.
+    secure: (await headers()).get("x-forwarded-proto") === "https",
     path: "/",
     expires: expiresAt,
   });
