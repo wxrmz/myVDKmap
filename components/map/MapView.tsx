@@ -22,7 +22,8 @@ type Theme = keyof typeof STYLES;
 const START_CENTER = [132.023, 43.196];
 const START_ZOOM = 11.2;
 const PITCH: Record<MapLevel, number> = { city: 0, district: 35, complex: 55, house: 60 };
-const ZOOM = { complex: 16, house: 17 };
+// 2GIS draws buildings in 3D from about zoom 17; a complex opens right at that point.
+const ZOOM = { complex: 17, house: 17.5 };
 const FLY_MS = 1400;
 const FIT_MS = 1200;
 const EASING = "easeInOutCubic" as const;
