@@ -156,7 +156,11 @@ export async function ensureOsmBuilding(osmId: number): Promise<string | null> {
   const p = addressPoints().byId.get(osmId);
   if (!p) return null;
   const [, street, number, lat, lng, floors] = p;
-  const address = `${street}, ${number}`;
+  return createHouse(id, `${street}, ${number}`, lat, lng, floors);
+}
+
+/** A passport row for a house we only know the address and point of; an existing house with the same address wins. */
+async function createHouse(id: string, address: string, lat: number, lng: number, floors: number | null): Promise<string | null> {
   const key = norm(address);
   const existing = (await prisma.building.findMany({ select: { id: true, address: true } })).find((b) => norm(b.address) === key);
   if (existing) return existing.id;
@@ -216,6 +220,14 @@ export async function houseAt(lat: number, lng: number, street: string, number: 
   if (seeded) return seeded.id;
   const osm = near([...addressPoints().byId.values()], (p) => [p[3], p[4], p[1], p[2]]);
   return osm ? ensureOsmBuilding(osm[0]) : null;
+}
+
+/** Like `houseAt`, and a house our addresses miss (or spell differently) gets a passport from the 2GIS address itself. */
+export async function houseFromGis(gis: { id: string; lat: number; lng: number; street: string; number: string }) {
+  return (
+    (await houseAt(gis.lat, gis.lng, gis.street, gis.number)) ??
+    createHouse(`gis-${gis.id}`, `${gis.street}, ${gis.number}`, gis.lat, gis.lng, null)
+  );
 }
 
 // --- streets of city works (§6.4) ---

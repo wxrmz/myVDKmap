@@ -80,27 +80,39 @@ interface GisBuilding {
   address?: { components?: { street?: string; number?: string }[] };
 }
 const buildings = new Map<string, Promise<GisBuilding | null>>();
-function buildingAt(lat: number, lng: number) {
-  const key = `${lat},${lng}`;
-  let hit = buildings.get(key);
+const CATALOG = "https://catalog.api.2gis.com/3.0/items";
+/** One cached Catalog API call: `geocode?…` (nearest building to a point) or `byid?…` (a clicked map object). */
+function catalog(query: string) {
+  let hit = buildings.get(query);
   if (!hit) {
-    const url = `https://catalog.api.2gis.com/3.0/items/geocode?lat=${lat}&lon=${lng}&type=building&fields=items.point,items.address&key=${KEY}`;
-    hit = fetch(url)
+    hit = fetch(`${CATALOG}/${query}&fields=items.point,items.address&key=${KEY}`)
       .then((r) => (r.ok ? (r.json() as Promise<{ result?: { items?: GisBuilding[] } }>) : null))
       .then((j) => j?.result?.items?.[0] ?? null)
       .catch(() => null);
-    buildings.set(key, hit);
+    buildings.set(query, hit);
   }
   return hit;
 }
-const buildingIdAt = (lat: number, lng: number) => buildingAt(lat, lng).then((b) => b?.id.split("_")[0] ?? null);
+// A 20 m radius: an exact point often falls just outside the footprint (OSM points, entrances).
+const buildingAt = (lat: number, lng: number) => catalog(`geocode?lat=${lat}&lon=${lng}&type=building&radius=20`);
+const gisId = (id: string) => id.split("_")[0];
+const buildingIdAt = (lat: number, lng: number) => buildingAt(lat, lng).then((b) => (b ? gisId(b.id) : null));
 
-/** Passport id of the house under a click: 2GIS names the building, our API finds it among the city's addresses (§5.4). */
-async function passportAt(lat: number, lng: number) {
-  const b = await buildingAt(lat, lng);
+/**
+ * Passport id of the house under a click (§5.4). 2GIS reports the clicked object itself (right even on a tilted 3D map,
+ * where the ground point under a roof lies behind the house); without one, the nearest building to the point.
+ */
+async function passportAt(lngLat: number[], objectId?: string) {
+  const b = await (objectId ? catalog(`byid?id=${gisId(objectId)}`) : buildingAt(lngLat[1], lngLat[0]));
   const a = b?.address?.components?.find((c) => c.street && c.number);
   if (!b?.point || !a) return null;
-  const q = new URLSearchParams({ lat: String(b.point.lat), lng: String(b.point.lon), street: a.street!, number: a.number! });
+  const q = new URLSearchParams({
+    gisId: gisId(b.id),
+    lat: String(b.point.lat),
+    lng: String(b.point.lon),
+    street: a.street!,
+    number: a.number!,
+  });
   const res = await fetch(`/api/buildings/at?${q}`).catch(() => null);
   return res?.ok ? ((await res.json()) as { id: string }).id : null;
 }
@@ -181,16 +193,19 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
   const point = (lngLat: number[]) =>
     window.dispatchEvent(new CustomEvent<MapClickDetail>("map:click", { detail: { lng: lngLat[0], lat: lngLat[1] } }));
   /** Click on the map itself: a point for the report wizard, else the house under it when zoomed in to houses. */
-  const click = (lngLat: number[], orElse?: () => void) => {
+  const click = (lngLat: number[], objectId?: string, orElse?: () => void) => {
     if (picking()) return point(lngLat);
     if (map.getZoom() < HOUSE_CLICK_ZOOM) return orElse?.();
-    passportAt(lngLat[1], lngLat[0]).then((id) => {
+    // Highlight at once: the passport needs two requests, the click should answer now.
+    if (objectId) map.setSelectedObjects([gisId(objectId)]);
+    passportAt(lngLat, objectId).then((id) => {
       if (id && !picking()) latest.current.push(houseHref(id));
+      else if (!id && objectId) map.setSelectedObjects([]);
     });
   };
   map.on("click", (e) => {
     hide();
-    click(e.lngLat);
+    click(e.lngLat, e.target?.id);
   });
 
   return {
@@ -250,6 +265,7 @@ export function MapView({ className }: { className?: string }) {
   const insetsRef = useRef(insets);
   const latest = useRef<Latest>({ districts, complexes, shapes, theme, focus, push: router.push });
   const [api, setApi] = useState<Api | null>(null);
+  const [houseZoom, setHouseZoom] = useState(false);
 
   useEffect(() => {
     latest.current = { districts, complexes, shapes, theme, focus, push: router.push };
@@ -319,7 +335,18 @@ export function MapView({ className }: { className?: string }) {
     return () => window.removeEventListener("theme:switch", onSwitch);
   }, [api]);
 
-  // Districts: rebuilt on theme or focus change only; hover draws a separate overlay (createUi).
+  // From house zoom the map's own click must reach the buildings (2GIS reports the clicked object), so districts step aside.
+  useEffect(() => {
+    if (!api) return;
+    const check = () => setHouseZoom(api.map.getZoom() >= HOUSE_CLICK_ZOOM);
+    check();
+    api.map.on("zoomend", check);
+    return () => {
+      api.map.off("zoomend", check);
+    };
+  }, [api]);
+
+  // Districts: rebuilt on theme, focus or house-zoom change only; hover draws a separate overlay (createUi).
   useEffect(() => {
     if (!api) return;
     const { gl, map, ui } = api;
@@ -336,17 +363,21 @@ export function MapView({ className }: { className?: string }) {
           color: rgba(d.color, fill),
           strokeColor: rgba(d.color, 1),
           strokeWidth: (light ? 2 : 1) + (chosen ? 1 : 0),
+          interactive: !houseZoom,
         });
         p.on("mouseover", (e) => ui.district(d.id, e.point));
         p.on("mousemove", (e) => ui.district(d.id, e.point));
         p.on("mouseout", () => ui.district(null));
-        p.on("click", (e) => ui.click(e.lngLat, () => ui.go(districtHref(d.id))));
+        p.on("click", (e) => ui.click(e.lngLat, undefined, () => ui.go(districtHref(d.id))));
         return p;
       });
     });
     ui.restyle();
-    return () => polygons.forEach((p) => p.destroy());
-  }, [api, districts, shapes, theme, focus]);
+    return () => {
+      polygons.forEach((p) => p.destroy());
+      ui.district(null);
+    };
+  }, [api, districts, shapes, theme, focus, houseZoom]);
 
   useEffect(() => {
     api?.map.setPadding(insets, { duration: 300 });

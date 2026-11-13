@@ -37,7 +37,7 @@
 - `components/house/CabinetButtons.tsx` — `SaveHouseButton`, `SupportButton` («Меня тоже касается» → POST support)
 - `components/house/ShareButton.tsx` — `navigator.share` or copy link + toast
 - `components/map/MapContext.tsx` — `MapProvider`, `useMap`, `useMapScene`; types `MapData`, `MapScene`, `MapLevel`, `MapLayers`, `MapInsets`; issues refetch on `issues:changed`
-- `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, `theme:switch`, `map:ready`, `map:click` (point for the report wizard; navigation off while picking), 2GIS building selection; from zoom 15.5 a click opens the passport of the house under it (2GIS reverse geocode → `/api/buildings/at`)
+- `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, style cache over `fetch`, `theme:switch`, `map:ready`, `map:click` (point for the report wizard; navigation off while picking), 2GIS building selection; from zoom 15.5 districts stop catching clicks and a click opens the passport of the clicked 2GIS building (`byid`, or geocode within 20 m without one → `/api/buildings/at`), highlighting it at once
 - `components/map/MapTip.tsx` — hover card (rAF-batched store `setTip`, framer-motion glide)
 - `components/map/shapes.ts` — `buildShapes` (label point and camera frame per district), `insideDistrict`, `clusterByDistance`
 - `components/map/shapes.test.ts` — self-check (`npx tsx components/map/shapes.test.ts`)
@@ -62,7 +62,7 @@
 - `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е)
 - `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`, `SearchResult` (houses carry lat/lng), `HealthDTO`, `HouseSummaryDTO`
 - `lib/db.ts` — `prisma` PrismaClient singleton
-- `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `houseAt` + `streetKey`/`houseNumberKey` (house under a click: same street and number within 80 m), `streetPattern`, `getWorkStreets` (§6.4)
+- `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `houseAt` + `streetKey`/`houseNumberKey` (house under a click: same street and number within 80 m), `houseFromGis` (else a `gis-…` passport from the 2GIS address), `streetPattern`, `getWorkStreets` (§6.4)
 - `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getMapComplexes`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
 - `lib/nav.ts` — hrefs (`districtHref`, `complexHref`, `houseHref`, `issueHref`, `workHref`), `complexLabel`, `breadcrumbs`
 - `lib/health.ts` — `computeHealth` (§6.5), `plural` (Russian plurals)
@@ -72,7 +72,7 @@
 - `lib/streets.test.ts`, `lib/houses.test.ts`, `lib/health.test.ts`, `lib/auth.test.ts`, `lib/cabinet.test.ts` — self-checks (`npx tsx <file>`)
 - `lib/ai/http.ts` — `apiError`, `parseBody` (8 MB limit, JSON, zod with Russian messages), `serverError`
 - `app/api/search/route.ts` — `GET /api/search?q=`
-- `app/api/buildings/at/route.ts` — `GET /api/buildings/at?lat&lng&street&number` → `{ id }` of the passport, 404 when the house is not in our addresses
+- `app/api/buildings/at/route.ts` — `GET /api/buildings/at?gisId&lat&lng&street&number` → `{ id }` of the passport (ours, OSM or new `gis-…`), 404 outside the districts
 - `app/api/issues/route.ts` — `GET /api/issues[?building=]`, `POST /api/issues` (zod, authority and house checks, `osm-…` houses created lazily)
 - `app/api/issues/[id]/support/route.ts` — `POST` «Меня тоже касается» → `{ supports }`
 - `app/api/auth/register|login|logout/route.ts` — `POST` (rate-limited register/login)
