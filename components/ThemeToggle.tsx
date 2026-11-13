@@ -32,23 +32,22 @@ export function ThemeToggle({ className }: { className?: string }) {
     };
     try {
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return await apply();
-      // Fade the whole page to black, switch, fade back.
-      // Timers, not animation events: the veil always goes away, even if the tab stops painting.
-      const veil = document.createElement("div");
-      veil.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:#000;opacity:0;pointer-events:none";
-      document.body.append(veil);
-      const fade = (to: number, ms: number) => {
-        veil.style.transition = `opacity ${ms}ms ease-in-out`;
-        veil.getBoundingClientRect(); // commit the start opacity so the transition runs
-        veil.style.opacity = String(to);
+      // The page itself dims to dark, switches, brightens back. Timers, not animation events: it always comes back.
+      const root = document.documentElement;
+      const fade = (brightness: number, ms: number) => {
+        root.style.transition = `filter ${ms}ms ease-in-out`;
+        root.style.filter = `brightness(${brightness})`;
         return new Promise((r) => setTimeout(r, ms));
       };
       try {
-        await fade(1, 220);
+        root.style.filter = "brightness(1)";
+        root.getBoundingClientRect(); // commit the start so the transition runs
+        await fade(0, 220);
         await apply();
-        await fade(0, 280);
+        await fade(1, 280);
       } finally {
-        veil.remove();
+        root.style.transition = "";
+        root.style.filter = "";
       }
     } finally {
       switching = false;
