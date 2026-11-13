@@ -2,14 +2,14 @@
 
 // District level (§5.3): header, metrics, frequent issues, management companies, microdistricts and complexes, AI digest.
 import Link from "next/link";
-import { ChevronRight, ExternalLink } from "lucide-react";
+import { Building2, ChevronRight, ExternalLink } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMap, useMapScene } from "@/components/map/MapContext";
 import { plural } from "@/lib/health";
+import { cn } from "@/lib/utils";
 import { complexHref, complexLabel } from "@/lib/nav";
 import { ISSUE_CATEGORY_LABELS, type DistrictDetailDTO, type DistrictStatsDTO } from "@/lib/types";
 import { AiDigest } from "./AiDigest";
-import { ComplexStatusBadge } from "./badges";
 import { CloseButton } from "./CloseButton";
 
 export const GIS_ZHKH = "https://dom.gosuslugi.ru/";
@@ -84,40 +84,48 @@ export function DistrictPanel({ district, stats }: { district: DistrictDetailDTO
         </a>
       </section>
 
-      <section className="panel-box flex flex-col py-2">
-        <h2 className="pt-2 font-semibold">Микрорайоны и ЖК</h2>
+      <section className="panel-box flex flex-col p-1.5">
+        <h2 className="px-3 pt-2 pb-1 font-semibold">Микрорайоны и ЖК</h2>
         {microdistricts.length ? (
           <Accordion type="multiple" defaultValue={microdistricts.length === 1 ? [microdistricts[0].id] : []}>
             {microdistricts.map((m) => (
-              <AccordionItem key={m.id} value={m.id}>
-                <AccordionTrigger>
-                  <span>
-                    {m.name} <span className="font-normal text-muted-foreground">· {m.complexes.length}</span>
+              <AccordionItem key={m.id} value={m.id} className="border-b-0">
+                <AccordionTrigger className="items-center rounded-xl px-3 py-3 text-base hover:bg-muted hover:no-underline">
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="truncate">{m.name}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground tabular-nums">{m.complexes.length}</span>
                   </span>
                 </AccordionTrigger>
-                <AccordionContent className="flex flex-col gap-2">
+                <AccordionContent className="flex flex-col gap-0.5 pb-1.5">
                   {m.complexes.map((c) => {
                     const stats = complexes.find((x) => x.id === c.id);
+                    const building = c.status.startsWith("строится");
                     return (
                       <Link
                         key={c.id}
                         href={complexHref(district.id, c.id)}
                         prefetch
-                        className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-border transition-colors hover:bg-muted"
+                        className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted"
                       >
-                        <span className="flex min-w-0 flex-1 flex-col gap-1">
-                          <span className="font-medium">{complexLabel(c.name)}</span>
-                          <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <ComplexStatusBadge status={c.status} />
-                            {c.floors && <span>{c.floors} эт.</span>}
+                        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-card">
+                          <Building2 className="size-5" />
+                        </span>
+                        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span className="truncate font-medium">{complexLabel(c.name)}</span>
+                          <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1.5">
+                              <span className={cn("size-1.5 rounded-full", building ? "bg-work" : "bg-turquoise")} />
+                              {c.status}
+                            </span>
+                            {c.floors && <span>· {c.floors} эт.</span>}
                             {stats && stats.openIssues > 0 && (
                               <span className="text-coral">
-                                {stats.openIssues} {plural(stats.openIssues, ["проблема", "проблемы", "проблем"])}
+                                · {stats.openIssues} {plural(stats.openIssues, ["проблема", "проблемы", "проблем"])}
                               </span>
                             )}
                           </span>
                         </span>
-                        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                        <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                       </Link>
                     );
                   })}
@@ -126,7 +134,7 @@ export function DistrictPanel({ district, stats }: { district: DistrictDetailDTO
             ))}
           </Accordion>
         ) : (
-          <p className="pb-2 text-sm text-muted-foreground">Новых ЖК в базе нет — дом можно найти через поиск.</p>
+          <p className="px-3 pb-2 text-sm text-muted-foreground">Новых ЖК в базе нет — дом можно найти через поиск.</p>
         )}
       </section>
 
