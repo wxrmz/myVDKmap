@@ -8,8 +8,8 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** `theme:switch` event detail: sent right before the page theme changes, so the map can start restyling first. */
-export type ThemeSwitchDetail = { theme: "light" | "dark" };
+/** `theme:switch` event detail: listeners push a promise into `waits` that resolves when they are ready. */
+export type ThemeSwitchDetail = { theme: "light" | "dark"; waits: Promise<unknown>[] };
 
 const noopSubscribe = () => () => {};
 
@@ -18,14 +18,15 @@ export function ThemeToggle({ className }: { className?: string }) {
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const isDark = resolvedTheme === "dark";
 
-  async function toggle(e: React.MouseEvent<HTMLButtonElement>) {
+  async function toggle(button: HTMLButtonElement) {
     const next = isDark ? "light" : "dark";
-    const rect = e.currentTarget.getBoundingClientRect();
-    // No waiting for the map: the circle starts at the button and reaches the map after it has restyled,
-    // so the frame stays frozen only for the React render.
-    const apply = () => {
-      window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next } }));
+    const rect = button.getBoundingClientRect();
+    // Map first (it pushes "style applied" into `waits`), then the page: the circle opens on a map already in the new theme.
+    const apply = async () => {
+      const waits: Promise<unknown>[] = [];
+      window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
       flushSync(() => setTheme(next));
+      await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 300))]);
     };
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -33,7 +34,6 @@ export function ThemeToggle({ className }: { className?: string }) {
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
     const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    // The old frame is captured at once and stays frozen while `apply` runs, so the map never visibly repaints mid-switch.
     const transition = document.startViewTransition(apply);
     await transition.ready;
     document.documentElement.animate(
@@ -47,7 +47,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       variant="outline"
       size="icon"
       aria-label="Сменить тему"
-      onClick={toggle}
+      // Starts on press, not release: the ~50 ms the map needs for its new style pass while the button is still held.
+      onPointerDown={(e) => e.button === 0 && e.isPrimary && toggle(e.currentTarget)}
+      // Keyboard (Enter / Space) has no pointerdown; its click comes with detail 0.
+      onClick={(e) => e.detail === 0 && toggle(e.currentTarget)}
       className={cn("relative size-11 rounded-full [&_svg:not([class*='size-'])]:size-5", className)}
     >
       {mounted && (

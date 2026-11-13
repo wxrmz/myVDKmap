@@ -278,7 +278,7 @@ export function MapView({ className }: { className?: string }) {
     };
   }, []);
 
-  // Theme: follow next-themes; `theme:switch` starts the new style a moment before the page theme changes.
+  // Theme: follow next-themes; `theme:switch` lets the toggle wait for the new map style before its reveal.
   useEffect(() => {
     if (!api || styleTheme.current === theme) return;
     styleTheme.current = theme;
@@ -288,9 +288,11 @@ export function MapView({ className }: { className?: string }) {
   useEffect(() => {
     if (!api) return;
     const onSwitch = (e: Event) => {
-      const { theme: next } = (e as CustomEvent<ThemeSwitchDetail>).detail;
+      const { theme: next, waits } = (e as CustomEvent<ThemeSwitchDetail>).detail;
       if (styleTheme.current === next) return;
       styleTheme.current = next;
+      // `styleload` only: the toggle waits inside a view transition, where animation frames are paused.
+      waits.push(new Promise<void>((resolve) => api.map.once("styleload", () => resolve())));
       api.map.setStyleById(STYLES[next]).catch(() => {});
     };
     window.addEventListener("theme:switch", onSwitch);
