@@ -50,6 +50,8 @@ Next 15.5 + React 19 + TS strict + Tailwind v4 + tw-animate-css, eslint (flat co
 ## 10. Аутентификация и кабинет
 `lib/auth.ts` (§5.8), `lib/session.ts`, `lib/cabinet.ts` (`mergeCabinets`), `/api/auth/*`, `/api/cabinet/*`, `components/cabinet/*`, страница `/me`; самопроверки `lib/auth.test.ts`, `lib/cabinet.test.ts`.
 
+Позже: голосование «Проблема ещё есть?» — `IssueVote` (один голос на пользователя), `lib/votes.ts`, `POST /api/issues/[id]/vote`, `IssueVotes`. 3 жителя «уже решено» (или автор) и их больше, чем «ещё есть», — проблема уходит с карты в архив дома с подписью «по отзывам жителей»; перевес «ещё есть» возвращает её с прежним статусом. Официально решённые голосами не открываются. Самопроверка `lib/votes.test.ts`.
+
 ## 11. Финал
 README по-русски (§8). Проверка §11 целиком: с нуля `npm install && npx prisma db push && npm run seed && npm run preview`, tsc, lint, все тесты, демо-сценарий §9 в браузере.
 

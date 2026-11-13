@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { apiError, parseBody, serverError } from "@/lib/ai/http";
+import { currentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getIssues, toIssueDTO } from "@/lib/queries";
 import { ensureOsmBuilding } from "@/lib/search";
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
     }
 
     const row = await prisma.issue.create({
-      data: { ...body, buildingId, photoUrl: body.photoUrl ?? null },
+      data: { ...body, buildingId, photoUrl: body.photoUrl ?? null, authorId: (await currentUser())?.id ?? null },
       include: { building: { select: { address: true } } },
     });
     const { building, ...issue } = row;

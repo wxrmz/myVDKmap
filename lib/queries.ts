@@ -40,6 +40,7 @@ export const toIssueDTO = (i: Issue, address?: string): IssueDTO => ({
   status: i.status as IssueStatus,
   severity: i.severity as Severity,
   supports: i.supports,
+  closedByResidents: i.statusBeforeVotes !== null,
   createdAt: i.createdAt.toISOString(),
   ...(address !== undefined && { address }),
 });

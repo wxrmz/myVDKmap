@@ -176,9 +176,24 @@ export function HousePassport({ passport }: { passport: BuildingPassportDTO }) {
           <p className="text-sm text-muted-foreground">Открытых проблем нет.</p>
         )}
         {resolvedIssues.length > 0 && (
-          <p className="text-sm text-turquoise">
-            Решено: {resolvedIssues.length} {plural(resolvedIssues.length, ["проблема", "проблемы", "проблем"])}
-          </p>
+          <details className="group text-sm">
+            <summary className="cursor-pointer list-none font-medium text-turquoise [&::-webkit-details-marker]:hidden">
+              Архив: решено {resolvedIssues.length} {plural(resolvedIssues.length, ["проблема", "проблемы", "проблем"])}
+              <ChevronRight className="ml-1 inline size-4 transition-transform duration-200 group-open:rotate-90" />
+            </summary>
+            <ul className="-mx-1 mt-1 flex flex-col">
+              {resolvedIssues.map((i) => (
+                <li key={i.id}>
+                  <Link href={issueHref(i.id)} prefetch className="flex flex-col rounded-xl px-1 py-2 transition-colors hover:bg-muted">
+                    <span className="text-muted-foreground line-through decoration-muted-foreground/40">{i.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {ISSUE_CATEGORY_LABELS[i.category]} · {i.closedByResidents ? "решено по отзывам жителей" : "решено"}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </Section>
 

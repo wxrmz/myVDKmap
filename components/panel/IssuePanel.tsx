@@ -11,10 +11,21 @@ import { ISSUE_CATEGORY_LABELS, ISSUE_KIND_LABELS, type IssueDTO } from "@/lib/t
 import { cn } from "@/lib/utils";
 import { IssueStatusBadge } from "./badges";
 import { CloseButton } from "./CloseButton";
+import { IssueVotes, type IssueVotesState } from "./IssueVotes";
 
 const date = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 
-export function IssuePanel({ issue: i, authority, districtId }: { issue: IssueDTO; authority: string | null; districtId?: string }) {
+export function IssuePanel({
+  issue: i,
+  authority,
+  districtId,
+  votes,
+}: {
+  issue: IssueDTO;
+  authority: string | null;
+  districtId?: string;
+  votes: IssueVotesState;
+}) {
   useMapScene({
     level: "house",
     districtId,
@@ -32,6 +43,7 @@ export function IssuePanel({ issue: i, authority, districtId }: { issue: IssueDT
           </span>
           <span className="rounded-full px-2.5 py-0.5 ring-1 ring-border">{ISSUE_CATEGORY_LABELS[i.category]}</span>
           <IssueStatusBadge status={i.status} />
+          {i.closedByResidents && <span className="text-xs text-muted-foreground">по отзывам жителей</span>}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">{i.title}</h1>
         <p className="text-sm text-muted-foreground">Отмечено {date(i.createdAt)}</p>
@@ -63,14 +75,20 @@ export function IssuePanel({ issue: i, authority, districtId }: { issue: IssueDT
         )}
       </section>
 
-      <section className="panel-box flex flex-col gap-2">
-        <h2 className="font-semibold">Вас это тоже касается?</h2>
-        <p className="text-sm text-muted-foreground">
-          Нажмите, если сталкиваетесь с этой же проблемой здесь. Чем больше жителей отметились, тем выше она в списке района.
-          {i.supports > 0 && ` Уже отметились: ${i.supports}.`}
-        </p>
-        <SupportButton issueId={i.id} supports={i.supports} />
-      </section>
+      {i.status !== "resolved" && (
+        <section className="panel-box flex flex-col gap-2">
+          <h2 className="font-semibold">Вас это тоже касается?</h2>
+          <p className="text-sm text-muted-foreground">
+            Нажмите, если сталкиваетесь с этой же проблемой здесь. Чем больше жителей отметились, тем выше она в списке района.
+            {i.supports > 0 && ` Уже отметились: ${i.supports}.`}
+          </p>
+          <SupportButton issueId={i.id} supports={i.supports} />
+        </section>
+      )}
+
+      {(i.status !== "resolved" || i.closedByResidents) && (
+        <IssueVotes key={i.status} issueId={i.id} closed={i.closedByResidents} initial={votes} />
+      )}
 
       {(authority || i.appealText) && (
         <Accordion type="single" collapsible className="panel-box py-0">

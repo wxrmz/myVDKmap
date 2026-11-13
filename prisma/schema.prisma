@@ -97,9 +97,14 @@ model Issue {
   status      String    @default("new")
   severity    Int       @default(2)
   supports    Int       @default(0)
+  /// Set while residents' votes keep the issue closed: the status to restore if they reopen it.
+  statusBeforeVotes String?
+  authorId    String?
   createdAt   DateTime  @default(now())
   building    Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
   authority   Authority @relation(fields: [authorityId], references: [id])
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  votes       IssueVote[]
 
   @@index([buildingId])
   @@index([createdAt])
@@ -158,6 +163,21 @@ model User {
   createdAt    DateTime     @default(now())
   sessions     Session[]
   cabinet      CabinetData?
+  issues       Issue[]
+  issueVotes   IssueVote[]
+}
+
+/// One resident's answer to «проблема ещё есть?»: gone = «уже решено».
+model IssueVote {
+  issueId   String
+  userId    String
+  gone      Boolean
+  createdAt DateTime @default(now())
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, userId])
+  @@index([userId])
 }
 
 model Session {

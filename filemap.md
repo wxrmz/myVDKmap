@@ -31,10 +31,11 @@
 - `components/panel/BuildingLink.tsx` — house row (address, floors if known, open issues)
 - `components/panel/badges.tsx` — `IssueStatusBadge`, `ComplexStatusBadge`
 - `components/panel/CloseButton.tsx` — top-right cross of district, ЖК, house and issue panels (goes one level up)
-- `components/panel/IssuePanel.tsx` — issue page: kind, category, status, photo, description, place, «Меня тоже касается», appeal text
+- `components/panel/IssuePanel.tsx` — issue page: kind, category, status, photo, description, place, «Меня тоже касается», «Проблема ещё есть?» votes, appeal text
 - `components/house/HousePassport.tsx` — passport §5.4: header, health, sections, ГИС ЖКХ and capital-repair fund links, actions
 - `components/house/HealthRing.tsx` — health ring 0–100 with breakdown
 - `components/house/Section.tsx` — passport block in `panel-box`
+- `components/panel/IssueVotes.tsx` — «Уже решено» / «Ещё есть» for signed-in residents → POST vote; refreshes map and page when the issue closes or reopens
 - `components/house/CabinetButtons.tsx` — `SaveHouseButton`, `SupportButton` («Меня тоже касается» → POST support)
 - `components/house/ShareButton.tsx` — `navigator.share` or copy link + toast
 - `components/map/MapContext.tsx` — `MapProvider`, `useMap`, `useMapScene`; types `MapData`, `MapScene`, `MapLevel`, `MapLayers`, `MapInsets`; issues refetch on `issues:changed`
@@ -67,15 +68,17 @@
 - `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getMapComplexes`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
 - `lib/nav.ts` — hrefs (`districtHref`, `complexHref`, `houseHref`, `issueHref`, `workHref`), `complexLabel`, `breadcrumbs`
 - `lib/health.ts` — `computeHealth` (§6.5), `plural` (Russian plurals)
+- `lib/votes.ts` — `tally`: closed when ≥ 3 «уже решено» (the author counts as 3) outnumber «ещё есть»
 - `lib/auth.ts` — server auth §5.8: scrypt hash/verify, sessions (`vdk_session`, SHA-256 in DB), rate limit, zod schemas, `publicUser`
 - `lib/session.ts` — client session store (`useSession`, `setSessionUser`, `clearSession`); starts/stops cabinet sync
 - `lib/cabinet.ts` — cabinet data §5.8: `CabinetSchema`, `mergeCabinets`, localStorage store (`updateCabinet`, `getCabinet`), server sync, `toggleSavedHouse`, `markSupported`; event `cabinet:changed`
-- `lib/streets.test.ts`, `lib/houses.test.ts`, `lib/health.test.ts`, `lib/auth.test.ts`, `lib/cabinet.test.ts` — self-checks (`npx tsx <file>`)
+- `lib/streets.test.ts`, `lib/houses.test.ts`, `lib/health.test.ts`, `lib/auth.test.ts`, `lib/cabinet.test.ts`, `lib/votes.test.ts` — self-checks (`npx tsx <file>`)
 - `lib/ai/http.ts` — `apiError`, `parseBody` (8 MB limit, JSON, zod with Russian messages), `serverError`
 - `app/api/search/route.ts` — `GET /api/search?q=`
 - `app/api/buildings/at/route.ts` — `GET /api/buildings/at?gisId&lat&lng&street&number` → `{ id }` of the passport (ours, OSM or new `gis-…`), 404 outside the districts
 - `app/api/issues/route.ts` — `GET /api/issues[?building=]`, `POST /api/issues` (zod, authority and house checks, `osm-…` houses created lazily)
 - `app/api/issues/[id]/support/route.ts` — `POST` «Меня тоже касается» → `{ supports }`
+- `app/api/issues/[id]/vote/route.ts` — `POST { gone }` (signed in, one vote per user): closes the issue into the house archive or reopens it by `lib/votes.ts`
 - `app/api/auth/register|login|logout/route.ts` — `POST` (rate-limited register/login)
 - `app/api/auth/me/route.ts` — `GET` (`{ user | null }`), `PATCH` name/phone/password, `DELETE` account
 - `app/api/auth/esia/demo/route.ts` — `POST` link or demo sign-in, `DELETE` unlink

@@ -147,6 +147,8 @@ export interface IssueDTO {
   status: IssueStatus;
   severity: Severity;
   supports: number;
+  /** Closed by residents' votes, not by an official answer. */
+  closedByResidents: boolean;
   createdAt: string;
   address?: string;
 }
