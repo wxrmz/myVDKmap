@@ -8,8 +8,8 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** `theme:switch` event detail: listeners push a promise into `waits` that resolves when they are ready. */
-export type ThemeSwitchDetail = { theme: "light" | "dark"; waits: Promise<unknown>[] };
+/** `theme:switch` event detail: sent right before the page theme changes, so the map can start restyling first. */
+export type ThemeSwitchDetail = { theme: "light" | "dark" };
 
 const noopSubscribe = () => () => {};
 
@@ -21,16 +21,15 @@ export function ThemeToggle({ className }: { className?: string }) {
   async function toggle(e: React.MouseEvent<HTMLButtonElement>) {
     const next = isDark ? "light" : "dark";
     const rect = e.currentTarget.getBoundingClientRect();
-    // Switch the map first (it pushes a promise into `waits`), then the page; resolves when the new map style is applied.
-    const apply = async () => {
-      const waits: Promise<unknown>[] = [];
-      window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
+    // No waiting for the map: the circle starts at the button and reaches the map after it has restyled,
+    // so the frame stays frozen only for the React render.
+    const apply = () => {
+      window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next } }));
       flushSync(() => setTheme(next));
-      await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 300))]);
     };
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!document.startViewTransition || reduce) return void apply();
+    if (!document.startViewTransition || reduce) return apply();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
     const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
