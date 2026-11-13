@@ -155,8 +155,8 @@ html.theme-fading,
 html.theme-fading *,
 html.theme-fading *::before,
 html.theme-fading *::after {
-  transition: background-color 450ms ease-in-out, color 450ms ease-in-out, border-color 450ms ease-in-out,
-    fill 450ms ease-in-out, stroke 450ms ease-in-out, box-shadow 450ms ease-in-out, outline-color 450ms ease-in-out !important;
+  /* Colours only: icons follow `color`; shadows and outlines would make every frame repaint far more. */
+  transition: background-color 450ms ease-in-out, color 450ms ease-in-out, border-color 450ms ease-in-out !important;
 }
 
 /* Splash (§5.10): CSS so it animates before JS loads. */

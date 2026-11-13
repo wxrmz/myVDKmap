@@ -7,23 +7,34 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/** `theme:switch` detail: the map pushes into `waits` a promise that resolves when its new style is drawn. */
+export type ThemeSwitchDetail = { theme: "light" | "dark"; waits: Promise<unknown>[] };
+
 const noopSubscribe = () => () => {};
-let fadeTimer: ReturnType<typeof setTimeout> | undefined;
+let switching = false;
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const isDark = resolvedTheme === "dark";
 
-  function toggle() {
+  async function toggle() {
+    if (switching) return;
+    switching = true;
+    const next = isDark ? "light" : "dark";
     const root = document.documentElement;
-    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      // Colours ease to the new theme (CSS in globals.css); the map crossfades itself in MapView.
-      root.classList.add("theme-fading");
-      clearTimeout(fadeTimer);
-      fadeTimer = setTimeout(() => root.classList.remove("theme-fading"), 700); // 450 ms fade plus slack for a busy first frame
-    }
-    setTheme(isDark ? "light" : "dark");
+    // The map switches first, under a still of itself; once its heavy style pass is over, the page's colours and the
+    // map's still fade in the same frame (CSS in globals.css).
+    const waits: Promise<unknown>[] = [];
+    window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
+    await Promise.all(waits);
+    const fade = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (fade) root.classList.add("theme-fading");
+    setTheme(next);
+    setTimeout(() => {
+      root.classList.remove("theme-fading");
+      switching = false;
+    }, fade ? 700 : 0); // 450 ms fade plus slack for a busy first frame
   }
 
   return (

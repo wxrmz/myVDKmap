@@ -11,6 +11,7 @@ import type * as MapGL from "@2gis/mapgl/types";
 import { complexHref, districtHref, houseHref, issueHref, workHref } from "@/lib/nav";
 import type { CityWorkDTO, DistrictWithCountsDTO, IssueDTO, MapComplexDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { ThemeSwitchDetail } from "@/components/ThemeToggle";
 import { useMap, type MapLayers, type MapLevel, type MapScene } from "./MapContext";
 import { MapTip, setTip, TIP_WIDTH, type Tip, type TipTarget } from "./MapTip";
 import { clusterByDistance, insideDistrict, type DistrictShape } from "./shapes";
@@ -65,7 +66,10 @@ function prefetchStyle(from: string, to: string) {
   }
 }
 
-/** Lays a still of the current map over it, switches the style, and fades the still out once the new style is in. */
+/**
+ * Lays a still of the current map over it, switches the style under it, and fades the still out once the new style has
+ * drawn a frame. Resolves at the fade, so the page can start its own colour fade in the same frame.
+ */
 function crossfadeStyle(map: MapGL.Map, container: HTMLElement, style: string) {
   const src = map.getCanvas();
   const still = document.createElement("canvas");
@@ -74,17 +78,20 @@ function crossfadeStyle(map: MapGL.Map, container: HTMLElement, style: string) {
   still.getContext("2d")?.drawImage(src, 0, 0); // needs preserveDrawingBuffer
   still.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity 450ms ease-in-out";
   container.append(still);
-  let done = false;
-  const reveal = () => {
-    if (done) return;
-    done = true;
-    still.style.opacity = "0";
-    setTimeout(() => still.remove(), 500);
-  };
-  // `styleload`, not `idle`: the page's colours are already easing; tiles that come later fill in under the fade.
-  map.once("styleload", reveal);
-  setTimeout(reveal, 300); // a slow style load must not leave the old map on screen
-  map.setStyleById(style).catch(reveal);
+  return new Promise<void>((resolve) => {
+    let done = false;
+    const reveal = () => {
+      if (done) return;
+      done = true;
+      still.style.opacity = "0";
+      setTimeout(() => still.remove(), 500);
+      resolve();
+    };
+    // Two frames after `styleload`: the heavy style pass is over before any fade starts, so the fades run smooth.
+    map.once("styleload", () => requestAnimationFrame(() => requestAnimationFrame(reveal)));
+    setTimeout(reveal, 400); // a slow style load must not hold the switch or leave the old map on screen
+    map.setStyleById(style).catch(reveal);
+  });
 }
 
 let readySent = false;
@@ -344,12 +351,25 @@ export function MapView({ className }: { className?: string }) {
     };
   }, []);
 
-  // Theme: follow next-themes. The map crossfades itself while the page's colours ease (ThemeToggle).
+  // Theme. The toggle sends `theme:switch` first: the map switches under a still of itself, and the page waits for it,
+  // so both fade together. Other theme changes just follow next-themes.
   useEffect(() => {
     if (!api || styleTheme.current === theme || !containerRef.current) return;
     styleTheme.current = theme;
     crossfadeStyle(api.map, containerRef.current, STYLES[theme]);
   }, [api, theme]);
+
+  useEffect(() => {
+    if (!api) return;
+    const onSwitch = (e: Event) => {
+      const { theme: next, waits } = (e as CustomEvent<ThemeSwitchDetail>).detail;
+      if (styleTheme.current === next || !containerRef.current) return;
+      styleTheme.current = next;
+      waits.push(crossfadeStyle(api.map, containerRef.current, STYLES[next]));
+    };
+    window.addEventListener("theme:switch", onSwitch);
+    return () => window.removeEventListener("theme:switch", onSwitch);
+  }, [api]);
 
   // From house zoom the map's own click must reach the buildings (2GIS reports the clicked object), so districts step aside.
   useEffect(() => {
