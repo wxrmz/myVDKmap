@@ -149,13 +149,6 @@ details[open]::details-content {
   block-size: auto;
 }
 
-/* Theme switch: circular reveal is driven from ThemeToggle via WAAPI. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
 /* Splash (§5.10): CSS so it animates before JS loads. */
 .splash-fill {
   transform-origin: left;

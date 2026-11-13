@@ -12,34 +12,47 @@ import { cn } from "@/lib/utils";
 export type ThemeSwitchDetail = { theme: "light" | "dark"; waits: Promise<unknown>[] };
 
 const noopSubscribe = () => () => {};
+let switching = false;
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const isDark = resolvedTheme === "dark";
 
-  async function toggle(button: HTMLButtonElement) {
+  async function toggle() {
+    if (switching) return;
+    switching = true;
     const next = isDark ? "light" : "dark";
-    const rect = button.getBoundingClientRect();
-    // Map first (it pushes "style applied" into `waits`), then the page: the circle opens on a map already in the new theme.
+    // Map first (it pushes "style applied" into `waits`), then the page; the screen is dark meanwhile.
     const apply = async () => {
       const waits: Promise<unknown>[] = [];
       window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
       flushSync(() => setTheme(next));
-      await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 300))]);
+      await Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, 600))]);
     };
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!document.startViewTransition || reduce) return apply();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-    const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    const transition = document.startViewTransition(apply);
-    await transition.ready;
-    document.documentElement.animate(
-      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
-      { duration: 450, easing: "cubic-bezier(0.4, 0, 0.2, 1)", pseudoElement: "::view-transition-new(root)" },
-    );
+    try {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return await apply();
+      // Fade the whole page to black, switch, fade back.
+      // Timers, not animation events: the veil always goes away, even if the tab stops painting.
+      const veil = document.createElement("div");
+      veil.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:#000;opacity:0;pointer-events:none";
+      document.body.append(veil);
+      const fade = (to: number, ms: number) => {
+        veil.style.transition = `opacity ${ms}ms ease-in-out`;
+        veil.getBoundingClientRect(); // commit the start opacity so the transition runs
+        veil.style.opacity = String(to);
+        return new Promise((r) => setTimeout(r, ms));
+      };
+      try {
+        await fade(1, 220);
+        await apply();
+        await fade(0, 280);
+      } finally {
+        veil.remove();
+      }
+    } finally {
+      switching = false;
+    }
   }
 
   return (
@@ -47,10 +60,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       variant="outline"
       size="icon"
       aria-label="Сменить тему"
-      // Starts on press, not release: the ~50 ms the map needs for its new style pass while the button is still held.
-      onPointerDown={(e) => e.button === 0 && e.isPrimary && toggle(e.currentTarget)}
-      // Keyboard (Enter / Space) has no pointerdown; its click comes with detail 0.
-      onClick={(e) => e.detail === 0 && toggle(e.currentTarget)}
+      onClick={toggle}
       className={cn("relative size-11 rounded-full [&_svg:not([class*='size-'])]:size-5", className)}
     >
       {mounted && (
