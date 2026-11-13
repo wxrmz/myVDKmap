@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Building2, Construction } from "lucide-react";
 import type * as MapGL from "@2gis/mapgl/types";
-import type { ThemeSwitchDetail } from "@/components/ThemeToggle";
 import { complexHref, districtHref, houseHref, issueHref, workHref } from "@/lib/nav";
 import type { CityWorkDTO, DistrictWithCountsDTO, IssueDTO, MapComplexDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -64,6 +63,27 @@ function prefetchStyle(from: string, to: string) {
   for (const url of [...styleResponses.keys()]) {
     if (url.includes(from)) window.fetch(url.replaceAll(from, to)).catch(() => {});
   }
+}
+
+/** Lays a still of the current map over it, switches the style, and fades the still out once the new style has drawn. */
+function crossfadeStyle(map: MapGL.Map, container: HTMLElement, style: string) {
+  const src = map.getCanvas();
+  const still = document.createElement("canvas");
+  still.width = src.width;
+  still.height = src.height;
+  still.getContext("2d")?.drawImage(src, 0, 0); // needs preserveDrawingBuffer
+  still.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity 450ms ease-in-out";
+  container.append(still);
+  let done = false;
+  const reveal = () => {
+    if (done) return;
+    done = true;
+    still.style.opacity = "0";
+    setTimeout(() => still.remove(), 500);
+  };
+  map.once("idle", reveal);
+  setTimeout(reveal, 1500); // a slow style load must not leave the old map frozen on screen
+  map.setStyleById(style).catch(reveal);
 }
 
 let readySent = false;
@@ -302,6 +322,8 @@ export function MapView({ className }: { className?: string }) {
           padding: insetsRef.current,
           controlsLayoutPadding: insetsRef.current,
           lang: "ru",
+          // Lets the theme crossfade copy the current frame.
+          preserveDrawingBuffer: true,
           // Bottom right: on phones the right edge holds the theme, «Мои дома» and layers buttons.
           zoomControl: "bottomRight",
           enableTrackResize: true,
@@ -321,26 +343,12 @@ export function MapView({ className }: { className?: string }) {
     };
   }, []);
 
-  // Theme: follow next-themes; `theme:switch` lets the toggle wait for the new map style before its reveal.
+  // Theme: follow next-themes. The page's view transition cannot capture the WebGL canvas, so the map crossfades itself.
   useEffect(() => {
-    if (!api || styleTheme.current === theme) return;
+    if (!api || styleTheme.current === theme || !containerRef.current) return;
     styleTheme.current = theme;
-    api.map.setStyleById(STYLES[theme]).catch(() => {});
+    crossfadeStyle(api.map, containerRef.current, STYLES[theme]);
   }, [api, theme]);
-
-  useEffect(() => {
-    if (!api) return;
-    const onSwitch = (e: Event) => {
-      const { theme: next, waits } = (e as CustomEvent<ThemeSwitchDetail>).detail;
-      if (styleTheme.current === next) return;
-      styleTheme.current = next;
-      // `styleload` only: the toggle waits inside a view transition, where animation frames are paused.
-      waits.push(new Promise<void>((resolve) => api.map.once("styleload", () => resolve())));
-      api.map.setStyleById(STYLES[next]).catch(() => {});
-    };
-    window.addEventListener("theme:switch", onSwitch);
-    return () => window.removeEventListener("theme:switch", onSwitch);
-  }, [api]);
 
   // From house zoom the map's own click must reach the buildings (2GIS reports the clicked object), so districts step aside.
   useEffect(() => {
