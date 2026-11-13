@@ -141,6 +141,21 @@ function redrawUnderStill(map: MapGL.Map, style: string) {
   });
 }
 
+const other = (t: Theme): Theme => (t === "light" ? "dark" : "light");
+
+/** District polygon look per theme: a chosen district keeps only its border, the others stay visible but lighter. */
+function districtLook(color: string, theme: Theme, chosen: boolean, focused: boolean) {
+  const light = theme === "light";
+  const fill = !focused ? (light ? 0.34 : 0.2) : chosen ? 0.05 : light ? 0.18 : 0.12;
+  return { color: rgba(color, fill), strokeColor: rgba(color, 1), strokeWidth: (light ? 2 : 1) + (chosen ? 1 : 0) };
+}
+
+/**
+ * Shadow map: the same view in the other theme, drawn in advance just above the main map's canvas (under its markers)
+ * but invisible. The theme toggle shows it at once — no redraw to wait for — and the main map restyles beneath it.
+ */
+type Shadow = { map: MapGL.Map; el: HTMLDivElement; ready: boolean };
+
 let readySent = false;
 function announceReady() {
   if (readySent) return;
@@ -345,6 +360,8 @@ export function MapView({ className }: { className?: string }) {
   const focus = scene.level === "city" ? undefined : scene.districtId;
   const containerRef = useRef<HTMLDivElement>(null);
   const styleTheme = useRef<Theme | null>(null);
+  const [shadow, setShadow] = useState<Shadow | null>(null);
+  const [shadowTheme, setShadowTheme] = useState<Theme | null>(null);
   const insetsRef = useRef(insets);
   const latest = useRef<Latest>({ districts, complexes, shapes, theme, focus, push: router.push });
   const [api, setApi] = useState<Api | null>(null);
@@ -401,8 +418,90 @@ export function MapView({ className }: { className?: string }) {
     };
   }, []);
 
-  // Theme: the toggle sends `theme:switch` and waits while the map redraws hidden under a still, then reveals both
-  // together. Other theme changes just follow next-themes.
+  // Shadow map: created once the main map has settled, so the first load is not doubled.
+  useEffect(() => {
+    if (!api) return;
+    let created: Shadow | null = null;
+    const timer = setTimeout(() => {
+      const main = api.map;
+      const el = document.createElement("div");
+      el.style.cssText = "position:absolute;inset:0;opacity:0;pointer-events:none";
+      main.getCanvas().after(el);
+      const theme = other(styleTheme.current ?? "light");
+      const map = new api.gl.Map(el, {
+        key: KEY,
+        center: main.getCenter(),
+        zoom: main.getZoom(),
+        rotation: main.getRotation(),
+        pitch: main.getPitch(),
+        maxZoom: 18,
+        maxPitch: PITCH.house,
+        lowZoomMaxPitch: PITCH.house,
+        style: STYLES[theme],
+        padding: main.getPadding(),
+        lang: "ru",
+        zoomControl: false,
+        enableTrackResize: true,
+      });
+      const s: Shadow = { map, el, ready: false };
+      map.once("idle", () => (s.ready = true));
+      created = s;
+      setShadow(s);
+      setShadowTheme(theme);
+    }, 1500);
+    return () => {
+      clearTimeout(timer);
+      created?.map.destroy();
+      created?.el.remove();
+      setShadow(null);
+    };
+  }, [api]);
+
+  // The shadow follows the main camera (coalesced to one update per frame).
+  useEffect(() => {
+    if (!api || !shadow) return;
+    const main = api.map;
+    let frame = 0;
+    const sync = () => {
+      frame = 0;
+      shadow.map.setCenter(main.getCenter(), { animate: false });
+      shadow.map.setZoom(main.getZoom(), { animate: false });
+      shadow.map.setRotation(main.getRotation(), { animate: false });
+      shadow.map.setPitch(main.getPitch(), { animate: false });
+    };
+    const queue = () => (frame ||= requestAnimationFrame(sync));
+    const events = ["move", "zoom", "rotation", "pitch"] as const;
+    events.forEach((e) => main.on(e, queue));
+    sync();
+    return () => {
+      cancelAnimationFrame(frame);
+      events.forEach((e) => main.off(e, queue));
+    };
+  }, [api, shadow]);
+
+  useEffect(() => {
+    shadow?.map.setPadding(insets, { animate: false });
+    shadow?.map.setControlsLayoutPadding(insets);
+  }, [shadow, insets]);
+
+  // District polygons on the shadow, in its own theme.
+  useEffect(() => {
+    if (!api || !shadow || !shadowTheme) return;
+    const polygons = districts.flatMap((d) =>
+      (shapes[d.id]?.parts ?? []).map(
+        (coordinates) =>
+          new api.gl.Polygon(shadow.map, {
+            coordinates,
+            ...districtLook(d.color, shadowTheme, focus === d.id, focus !== undefined),
+            interactive: false,
+          }),
+      ),
+    );
+    return () => polygons.forEach((p) => p.destroy());
+  }, [api, shadow, shadowTheme, districts, shapes, focus]);
+
+  // Theme: the toggle sends `theme:switch`; the map answers with what the page should reveal together with itself.
+  // Other theme changes just follow next-themes.
   useEffect(() => {
     if (switchTo) {
       if (switchTo === pageTheme) setSwitchTo(null); // the page has caught up with the map
@@ -411,7 +510,17 @@ export function MapView({ className }: { className?: string }) {
     if (!api || styleTheme.current === pageTheme) return;
     styleTheme.current = pageTheme;
     api.map.setStyleById(STYLES[pageTheme]).catch(() => {});
-  }, [api, pageTheme, switchTo]);
+    if (shadow && shadowTheme === pageTheme) {
+      shadow.ready = false;
+      shadow.map.setStyleById(STYLES[other(pageTheme)]).then(() => shadow.map.once("idle", () => (shadow.ready = true)), () => {});
+      setShadowTheme(other(pageTheme));
+    }
+  }, [api, pageTheme, switchTo, shadow, shadowTheme]);
+
+  const shadowState = useRef({ shadow, shadowTheme });
+  useEffect(() => {
+    shadowState.current = { shadow, shadowTheme };
+  });
 
   useEffect(() => {
     if (!api) return;
@@ -419,8 +528,24 @@ export function MapView({ className }: { className?: string }) {
       const { theme: next, waits } = (e as CustomEvent<ThemeSwitchDetail>).detail;
       if (styleTheme.current === next) return;
       styleTheme.current = next;
-      setSwitchTo(next); // district polygons take the new colours now, under the still
-      waits.push(redrawUnderStill(api.map, STYLES[next]));
+      setSwitchTo(next); // district polygons take the new colours now, hidden under the shadow or the still
+      const { shadow: s, shadowTheme: sTheme } = shadowState.current;
+      if (!s || !s.ready || sTheme !== next || s.el.style.opacity === "1") {
+        waits.push(redrawUnderStill(api.map, STYLES[next])); // shadow not drawn yet: the slower way
+        return;
+      }
+      s.map.setSelectedObjects(houseSelection);
+      waits.push(Promise.resolve(() => (s.el.style.opacity = "1")));
+      // Beneath the shadow the main map restyles at its own pace; once it has settled the shadow steps back and takes
+      // the opposite theme for the next switch.
+      const settle = () => {
+        s.el.style.opacity = "0";
+        const now = styleTheme.current ?? next;
+        s.ready = false;
+        s.map.setStyleById(STYLES[other(now)]).then(() => s.map.once("idle", () => (s.ready = true)), () => {});
+        setShadowTheme(other(now));
+      };
+      api.map.setStyleById(STYLES[next]).then(() => api.map.once("idle", settle), settle);
     };
     window.addEventListener("theme:switch", onSwitch);
     return () => window.removeEventListener("theme:switch", onSwitch);
@@ -441,19 +566,13 @@ export function MapView({ className }: { className?: string }) {
   useEffect(() => {
     if (!api) return;
     const { gl, map, ui } = api;
-    const light = theme === "light";
     const polygons = districts.flatMap((d) => {
       const shape = shapes[d.id];
       if (!shape) return [];
-      // A chosen district keeps only its border so the map inside stays readable; the others stay visible but lighter.
-      const chosen = focus === d.id;
-      const fill = focus === undefined ? (light ? 0.34 : 0.2) : chosen ? 0.05 : light ? 0.18 : 0.12;
       return shape.parts.map((coordinates) => {
         const p = new gl.Polygon(map, {
           coordinates,
-          color: rgba(d.color, fill),
-          strokeColor: rgba(d.color, 1),
-          strokeWidth: (light ? 2 : 1) + (chosen ? 1 : 0),
+          ...districtLook(d.color, theme, focus === d.id, focus !== undefined),
           interactive: !houseZoom,
         });
         p.on("mouseover", (e) => ui.district(d.id, e.point));
