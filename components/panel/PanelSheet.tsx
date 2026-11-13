@@ -1,6 +1,6 @@
 "use client";
 
-// Panel of the map pages (§5.1): desktop — 420 px column over the map under the search;
+// Panel of the map pages (§5.1): desktop — 384 px column (search width) over the map under the search;
 // phone — bottom sheet with 3 snap points (112 px, half, 64 px from the top), dragged by the handle.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
@@ -12,7 +12,7 @@ const COLLAPSED = 112;
 const TOP_GAP = 64;
 // Room for the search and chips over the phone map, so the camera keeps targets visible.
 const MOBILE_TOP = 120;
-const DESKTOP_COLUMN = 16 + 420 + 16;
+const DESKTOP_COLUMN = 16 + 384 + 16;
 
 const subscribeResize = (cb: () => void) => {
   window.addEventListener("resize", cb);
@@ -32,7 +32,7 @@ export function PanelSheet({ mobile, children }: { mobile: boolean; children: Re
 
   if (!mobile)
     return (
-      <div className="pointer-events-none fixed inset-y-0 left-[88px] z-20 flex w-[452px] flex-col gap-3 p-4">
+      <div className="pointer-events-none fixed inset-y-0 left-[88px] z-20 flex w-[416px] flex-col gap-3 p-4">
         <MapControls mobile={false} />
         <section
           aria-label="Панель"

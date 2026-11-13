@@ -62,7 +62,7 @@ interface MapContextValue {
 
 const MapContext = createContext<MapContextValue | null>(null);
 
-const PANEL = 420;
+const PANEL = 384;
 const DESKTOP = 768;
 
 const subscribeResize = (cb: () => void) => {

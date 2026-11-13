@@ -19,8 +19,8 @@ import { clusterByDistance, insideDistrict, type DistrictShape } from "./shapes"
 const KEY = process.env.NEXT_PUBLIC_2GIS_KEY ?? "";
 const STYLES = { light: "c080bb6a-8134-4993-93a1-5b4d8c36a59b", dark: "e05ac437-fcc2-4845-ad74-b1de9ce07555" };
 type Theme = keyof typeof STYLES;
-const START_CENTER = [131.95, 43.16];
-const START_ZOOM = 11.3;
+const START_CENTER = [132.023, 43.196];
+const START_ZOOM = 11.5;
 const PITCH: Record<MapLevel, number> = { city: 0, district: 35, complex: 55, house: 60 };
 const ZOOM = { complex: 16, house: 17 };
 const FLY_MS = 1400;
