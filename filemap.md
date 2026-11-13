@@ -83,6 +83,7 @@
 - `lib/ai/index.ts` — AI facade (§6.1): `classifyIssue`, `parseBill`, `summarizeDocument` (+ house binding), `districtDigest`; provider from `AI_PROVIDER` (openai only with `AI_API_KEY` and `AI_MODEL`)
 - `lib/ai/mock.ts` — deterministic provider: keyword classification over the authority handbook, receipt text parser + `analyzeBill` (glossary, history, tariff/season changes), prepared or heuristic document summaries, `houseNumbers`, `bindBuildings`, `districtFacts`/`districtDigest`
 - `lib/ai/openai.ts` — OpenAI-compatible provider via fetch (`/chat/completions`, JSON mode, 20 s timeout); invalid answer → one retry → mock, network error → mock
+- `lib/ai/pdf.ts` — `pdfText`: text of a PDF receipt line by line (unpdf; items on one baseline = one line); empty for scans. Self-check `lib/ai/pdf.test.ts`
 - `lib/ai/mock.test.ts` — self-check of the mock provider (needs the seeded DB)
 - `app/api/ai/classify/route.ts` — `POST` issue classification and appeal text
 - `app/api/ai/bill/route.ts` — `POST` receipt analysis (`demo`, `text` or `image`)
