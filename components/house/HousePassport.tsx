@@ -224,7 +224,7 @@ export function HousePassport({ passport }: { passport: BuildingPassportDTO }) {
           <p className="text-sm text-muted-foreground">Квитанций пока нет — загрузите свою, мы объясним каждую строку.</p>
         )}
       </Section>
-      <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
+      <div className="flex flex-col gap-2">
         <Button asChild className="h-11 rounded-xl">
           <Link href={`/report${q}`} prefetch>
             <TriangleAlert /> Сообщить о проблеме
