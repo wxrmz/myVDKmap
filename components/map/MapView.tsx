@@ -97,6 +97,10 @@ function catalog(query: string) {
 const buildingAt = (lat: number, lng: number) => catalog(`geocode?lat=${lat}&lon=${lng}&type=building&radius=20`);
 const gisId = (id: string) => id.split("_")[0];
 const buildingIdAt = (lat: number, lng: number) => buildingAt(lat, lng).then((b) => (b ? gisId(b.id) : null));
+/** Passport id → the 2GIS building clicked for it, so its page keeps that highlight instead of looking it up again. */
+const clickedBuilding = new Map<string, string>();
+/** The open house's highlight, to put back when a click lands on a building with no address. */
+let houseSelection: string[] = [];
 
 /**
  * Passport id of the house under a click (§5.4). 2GIS reports the clicked object itself (right even on a tilted 3D map,
@@ -199,8 +203,9 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
     // Highlight at once: the passport needs two requests, the click should answer now.
     if (objectId) map.setSelectedObjects([gisId(objectId)]);
     passportAt(lngLat, objectId).then((id) => {
+      if (id && objectId) clickedBuilding.set(id, gisId(objectId));
       if (id && !picking()) latest.current.push(houseHref(id));
-      else if (!id && objectId) map.setSelectedObjects([]);
+      else if (!id && objectId) map.setSelectedObjects(houseSelection);
     });
   };
   map.on("click", (e) => {
@@ -412,12 +417,16 @@ export function MapView({ className }: { className?: string }) {
     const house = scene.buildings?.find((b) => b.id === scene.buildingId) ?? scene.focus;
     if (!house) return;
     let live = true;
-    buildingIdAt(house.lat, house.lng).then((id) => {
-      if (live && id) api.map.setSelectedObjects([id]);
-    });
+    const select = (id: string) => api.map.setSelectedObjects((houseSelection = [id]));
+    const clicked = scene.buildingId && clickedBuilding.get(scene.buildingId);
+    if (clicked) select(clicked);
+    else
+      buildingIdAt(house.lat, house.lng).then((id) => {
+        if (live && id) select(id);
+      });
     return () => {
       live = false;
-      api.map.setSelectedObjects([]);
+      api.map.setSelectedObjects((houseSelection = []));
     };
   }, [api, scene]);
 
