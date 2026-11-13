@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { MoonIcon, SunIcon } from "lucide-react";
@@ -8,35 +8,22 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/**
- * `theme:switch` event detail: the map pushes into `waits` a promise with the function that shows it in the new theme
- * (its night map), applied in the same step as the page.
- */
-export type ThemeSwitchDetail = { theme: "light" | "dark"; waits: Promise<() => void>[] };
+/** `theme:switch` event detail, sent in the same step as the page's theme so the map flips with it. */
+export type ThemeSwitchDetail = { theme: "light" | "dark" };
 
 const noopSubscribe = () => () => {};
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
-  // The icon flips on press, the page right after.
-  const [pending, setPending] = useState<"light" | "dark" | null>(null);
-  const isDark = (pending ?? resolvedTheme) === "dark";
+  const isDark = resolvedTheme === "dark";
 
   async function toggle() {
-    if (pending) return;
     const next = isDark ? "light" : "dark";
-    setPending(next);
-    // The map answers with how to show itself in the new theme; page and map then change in one step and fade in together.
-    const waits: Promise<() => void>[] = [];
-    window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next, waits } }));
-    const reveals = await Promise.all(waits);
+    // Page and map change in one step (the map shows or hides its night map), then fade in together.
     const apply = () => {
-      flushSync(() => {
-        setTheme(next);
-        setPending(null);
-      });
-      reveals.forEach((reveal) => reveal());
+      flushSync(() => setTheme(next));
+      window.dispatchEvent(new CustomEvent<ThemeSwitchDetail>("theme:switch", { detail: { theme: next } }));
     };
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

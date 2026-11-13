@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiError, parseBody, serverError } from "@/lib/ai/http";
 import { currentUser } from "@/lib/auth";
@@ -27,10 +27,9 @@ const IssueInput = z.object({
   severity: z.number({ error: "Серьёзность — число от 1 до 3" }).int("Серьёзность — число от 1 до 3").min(1, "Серьёзность — число от 1 до 3").max(3, "Серьёзность — число от 1 до 3"),
 });
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const buildingId = req.nextUrl.searchParams.get("building") || undefined;
-    return NextResponse.json(await getIssues({ buildingId }));
+    return NextResponse.json(await getIssues());
   } catch (e) {
     return serverError(e);
   }

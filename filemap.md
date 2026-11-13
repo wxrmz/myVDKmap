@@ -44,7 +44,7 @@
 - `components/map/shapes.ts` — `buildShapes` (label point and camera frame per district), `insideDistrict`, `clusterByDistance`
 - `components/map/shapes.test.ts` — self-check (`npx tsx components/map/shapes.test.ts`)
 - `components/providers.tsx` — next-themes, `MotionConfig reducedMotion="user"`, sonner `Toaster`
-- `components/ThemeToggle.tsx` — round sun/moon button; icon flips on press; `theme:switch` + `waits` (the map's night-map flip), then a 300 ms View Transition fade of page and map together; exports `ThemeSwitchDetail`
+- `components/ThemeToggle.tsx` — round sun/moon button; inside a View Transition step it sets the theme and sends `theme:switch` (the map flips its night map), then a 300 ms fade of page and map together; exports `ThemeSwitchDetail`
 - `components/Splash.tsx` — §5.10 splash (CSS bar, finishes on `map:ready`, 700 ms–6 s; hidden on /bill, /changes, /report, /me)
 - `components/PageLoading.tsx` — `PageLoading` (title + delayed shimmer cards) and `PanelSkeleton`
 - `components/flows/api.ts` — `api()` typed JSON fetch (errors → Russian toast + `null`), `readAsDataUrl`

@@ -28,10 +28,10 @@ Next 15.5 + React 19 + TS strict + Tailwind v4 + tw-animate-css, eslint (flat co
 `lib/queries.ts`, `lib/search.ts` (§6.2–6.4), `lib/utils.ts` (`cn`, `norm`), `lib/nav.ts`, `lib/health.ts` (§6.5), самопроверки `lib/streets.test.ts` и `lib/health.test.ts`, `GET /api/search`, `GET|POST /api/issues`, `POST /api/issues/[id]/support`, хелперы ошибок `lib/ai/http.ts` (`apiError`, `parseBody`, `serverError`, лимит тела 8 МБ). Проверка: тесты через `npx tsx`, запрос из одной буквы ≤ ~30 мс на сервере, `osm-<id>` апсертится (§6.3).
 
 ## 4. Токены и базовые компоненты
-`app/globals.css` (токены §7, `panel-box`, `.skeleton-shimmer`, анимация `<details>`), шрифт Inter, нужные shadcn-компоненты с настройками §7, `components/providers.tsx` (next-themes, `MotionConfig reducedMotion="user"`, sonner), `ThemeToggle` (морфинг, View Transitions, событие `theme:switch` + `waits` §5.2; у карты две копии — всегда светлая и всегда тёмная, тема переключает видимость тёмной), `Splash` (§5.10), `PageLoading`. Проверка: build, визуально обе темы.
+`app/globals.css` (токены §7, `panel-box`, `.skeleton-shimmer`, анимация `<details>`), шрифт Inter, нужные shadcn-компоненты с настройками §7, `components/providers.tsx` (next-themes, `MotionConfig reducedMotion="user"`, sonner), `ThemeToggle` (морфинг, View Transitions, событие `theme:switch` §5.2; у карты две копии — всегда светлая и всегда тёмная, тема переключает видимость тёмной), `Splash` (§5.10), `PageLoading`. Проверка: build, визуально обе темы.
 
 ## 5. Карта 2GIS
-`components/map/MapView.tsx`, `MapContext`, `shapes.ts` (`buildShapes`), `MapTip`, кэш стилей через обёртку `fetch`, подсветка наведения, кластеры, маркеры, клики, `map:ready` — всё по §5.2. Проверка: в браузере без ошибок консоли, плавное наведение, смена темы мгновенная.
+`components/map/MapView.tsx`, `MapContext`, `shapes.ts` (`buildShapes`), `MapTip`, вторая (всегда тёмная) карта для смены темы, подсветка наведения, кластеры, маркеры, клики, `map:ready` — всё по §5.2. Проверка: в браузере без ошибок консоли, плавное наведение, смена темы мгновенная.
 
 ## 6. Оболочка
 `app/(map)/layout.tsx` (`force-dynamic`), `MapShell`, `Rail` (§5.1, `<Link prefetch>`), `PanelSheet` (десктоп-панель 420 px / мобильная шторка 3 положения), `MapControls` (крошки, «Мой дом», слои §5.2), `components/search/SearchBox.tsx` (§5.9). Проверка: 375 px без горизонтального скролла, навигация не перемонтирует карту.

@@ -329,14 +329,13 @@ export function MapView({ className }: { className?: string }) {
     };
   }, [api]);
 
-  // Theme: the toggle sends `theme:switch` and reveals the night map together with the page (one View Transition);
+  // Theme: the toggle sends `theme:switch` inside its View Transition step, so the night map flips with the page;
   // any other theme change (system setting) just follows.
   useEffect(() => setNight(api?.night, theme), [api, theme]);
   useEffect(() => {
     if (!api) return;
     const onSwitch = (e: Event) => {
-      const { theme: next, waits } = (e as CustomEvent<ThemeSwitchDetail>).detail;
-      waits.push(Promise.resolve(() => setNight(api.night, next)));
+      setNight(api.night, (e as CustomEvent<ThemeSwitchDetail>).detail.theme);
     };
     window.addEventListener("theme:switch", onSwitch);
     return () => window.removeEventListener("theme:switch", onSwitch);

@@ -175,9 +175,8 @@ export async function getBuilding(id: string): Promise<BuildingPassportDTO | nul
   };
 }
 
-export async function getIssues(filter: { buildingId?: string } = {}): Promise<IssueDTO[]> {
+export async function getIssues(): Promise<IssueDTO[]> {
   const rows = await prisma.issue.findMany({
-    where: filter.buildingId ? { buildingId: filter.buildingId } : {},
     include: { building: { select: { address: true } } },
     orderBy: { createdAt: "desc" },
   });
