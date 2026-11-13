@@ -125,7 +125,8 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, latest: { current: Latest })
     return place(r.left + r.width / 2 - box.left, r.top + r.height / 2 - box.top);
   };
   const districtTip = (): Tip | null => {
-    if (!district) return null;
+    // The chosen district has its own panel open, so it gets no hover card.
+    if (!district || district.id === latest.current.focus) return null;
     const { districts, complexes } = latest.current;
     const d = districts.find((x) => x.id === district?.id);
     if (!d) return null;
