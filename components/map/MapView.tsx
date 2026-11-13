@@ -76,7 +76,8 @@ function crossfadeStyle(map: MapGL.Map, container: HTMLElement, style: string) {
   still.width = src.width;
   still.height = src.height;
   still.getContext("2d")?.drawImage(src, 0, 0); // needs preserveDrawingBuffer
-  still.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity 450ms ease-in-out";
+  still.className = "map-still"; // its fade is in globals.css, next to the page's colour fade
+  still.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none";
   container.append(still);
   return new Promise<void>((resolve) => {
     let done = false;
