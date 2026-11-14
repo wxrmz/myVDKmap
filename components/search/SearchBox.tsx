@@ -11,6 +11,12 @@ import { cn } from "@/lib/utils";
 
 export const SEARCH_INPUT_ID = "map-search";
 
+let focusOnMount = false;
+/** The rail's «Поиск» on a page without the map search: focus it as soon as it appears. */
+export function focusSearchOnMount() {
+  focusOnMount = true;
+}
+
 const EXAMPLES = ["ЖК «Фрегат»", "ул. Нейбута", "Первомайский район", "Босфорский парк"];
 const TYPE: Record<SearchResult["type"], { label: string; Icon: typeof MapIcon }> = {
   district: { label: "Район", Icon: MapIcon },
@@ -42,6 +48,12 @@ export function SearchBox({
     const t = setInterval(() => setExample((i) => (i + 1) % EXAMPLES.length), 2800);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (onSelect || !focusOnMount) return;
+    focusOnMount = false;
+    inputRef.current?.focus();
+  }, [onSelect]);
 
   useEffect(() => {
     if (onSelect) return; // the `/` hotkey belongs to the map search only

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { CircleUser, Construction, Heart, Layers, Map as MapIcon, ReceiptRussianRuble, Search, TriangleAlert } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { SEARCH_INPUT_ID } from "@/components/search/SearchBox";
+import { focusSearchOnMount, SEARCH_INPUT_ID } from "@/components/search/SearchBox";
 import { cn } from "@/lib/utils";
 import { FavoritesPopover } from "./FavoritesPopover";
 import { LayersPopover } from "./LayersPopover";
@@ -73,8 +73,9 @@ export function Rail() {
   const router = useRouter();
   const focusSearch = () => {
     const input = document.getElementById(SEARCH_INPUT_ID);
-    if (input) input.focus();
-    else router.push("/");
+    if (input) return input.focus();
+    focusSearchOnMount();
+    router.push("/");
   };
   return (
     <nav
