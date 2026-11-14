@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { X } from "lucide-react";
+import { CloseLink } from "@/components/panel/CloseButton";
 
 /** Title row of a flow page with a close button back to the map (or to the house it came from). */
 export function FlowHeader({ title, description, backHref = "/" }: { title: string; description?: string; backHref?: string }) {
@@ -9,14 +9,13 @@ export function FlowHeader({ title, description, backHref = "/" }: { title: stri
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {description && <p className="text-muted-foreground">{description}</p>}
       </div>
-      <Link
+      <CloseLink
         href={backHref}
-        prefetch
-        aria-label="Закрыть"
+        label="Закрыть"
         className="grid size-10 shrink-0 place-items-center rounded-full bg-card ring-1 ring-border transition-colors hover:bg-muted"
       >
         <X className="size-5" />
-      </Link>
+      </CloseLink>
     </header>
   );
 }

@@ -6,11 +6,11 @@ import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react"
 import { usePathname } from "next/navigation";
 import { useFontScale } from "@/components/cabinet/shared";
 import { MapView } from "@/components/map/MapView";
-import { reopenClosedCard } from "@/components/panel/CloseButton";
 import { PanelSheet } from "@/components/panel/PanelSheet";
 import { useSession } from "@/lib/session";
 import { useMap } from "./MapContext";
-import { isMapPath, NAV_VT, pageShown, Rail, TabBar } from "./Rail";
+import { NAV_VT, pageArrived } from "./navMotion";
+import { isMapPath, Rail, TabBar } from "./Rail";
 
 const PHONE = "(max-width: 767.98px)";
 const subscribePhone = (cb: () => void) => {
@@ -33,12 +33,11 @@ export function MapShell({ children }: { children: React.ReactNode }) {
   useLayoutEffect(() => {
     if (shown.current === pathname) return;
     shown.current = pathname;
-    pageShown();
-    if (reopenClosedCard()) return; // the panel closed by its cross slides back in whole
+    if (pageArrived(pageRef.current)) return;
     if (document.documentElement.hasAttribute(NAV_VT) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     pageRef.current?.animate({ opacity: [0, 1] }, { duration: 200, easing: "ease-out" });
   }, [pathname]);
-  const page = <div ref={pageRef}>{children}</div>;
+  const page = <div ref={pageRef} data-page>{children}</div>;
   return (
     <>
       <Rail />
@@ -65,7 +64,7 @@ function FlowOverlay({ mobile, children }: { mobile: boolean; children: React.Re
       // While the report wizard takes a point (`data-map-pick` on <html>), the sheet steps aside to show the map.
       <section
         aria-label="Раздел"
-        className="fixed inset-x-0 top-0 bottom-12 z-20 overflow-y-auto overscroll-contain bg-background animate-in fade-in slide-in-from-bottom-4 duration-200 [[data-map-pick]_&]:invisible"
+        className="fixed inset-x-0 top-0 bottom-12 z-20 overflow-y-auto overscroll-contain bg-background animate-in slide-in-from-bottom duration-300 ease-out [[data-map-pick]_&]:invisible"
       >
         {children}
       </section>

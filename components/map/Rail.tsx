@@ -9,6 +9,7 @@ import { focusSearchOnMount, SEARCH_INPUT_ID } from "@/components/search/SearchB
 import { cn } from "@/lib/utils";
 import { FavoritesPopover } from "./FavoritesPopover";
 import { LayersPopover } from "./LayersPopover";
+import { closeTo, crossFadeTo, isPhone } from "./navMotion";
 import { useIdlePrefetch } from "./useIdlePrefetch";
 
 const MAP = { href: "/", label: "Карта", Icon: MapIcon };
@@ -19,34 +20,23 @@ const FLOWS = [
 ];
 const CABINET = { href: "/me", label: "Кабинет", Icon: CircleUser };
 
-/** Set on <html> while a rail link cross-fades the card (styles in globals.css). */
-export const NAV_VT = "data-nav-vt";
-let showPage: (() => void) | null = null;
-/** MapShell calls this once the new section is in the DOM, so the transition can take its picture. */
-export function pageShown() {
-  showPage?.();
-  showPage = null;
-}
-
-/** Click handler for a rail / tab bar link: old and new sections cross-fade in a View Transition. */
+/**
+ * Click handler for a rail / tab bar link. Desktop: old and new sections cross-fade in a View Transition.
+ * Phone: a flow card slides up over the map (MapShell) and slides back down to the map; a morph between the low
+ * sheet and the full-screen card covered the whole screen and the tab bar.
+ */
 function useCrossFade(href: string) {
   const router = useRouter();
   return (e: React.MouseEvent) => {
     const plain = e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
-    if (!plain || !document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (location.pathname === href) return;
+    if (!plain || location.pathname === href) return;
+    if (isPhone()) {
+      if (isMapPath(location.pathname) || !isMapPath(href)) return;
+      e.preventDefault();
+      return closeTo(href, router.push);
+    }
     e.preventDefault();
-    const root = document.documentElement;
-    root.setAttribute(NAV_VT, "");
-    const t = document.startViewTransition(
-      () =>
-        new Promise<void>((resolve) => {
-          showPage = resolve;
-          setTimeout(resolve, 600); // a slow page swaps without the picture rather than freezing the screen
-          router.push(href);
-        }),
-    );
-    t.finished.finally(() => root.removeAttribute(NAV_VT));
+    crossFadeTo(href, router.push);
   };
 }
 
