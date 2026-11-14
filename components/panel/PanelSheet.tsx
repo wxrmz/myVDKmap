@@ -1,16 +1,16 @@
 "use client";
 
 // Panel of the map pages (§5.1): desktop — 384 px column (search width) over the map under the search;
-// phone — bottom sheet with 3 snap points (100 px, 200 px, 64 px from the top), dragged by the handle.
-import { useCallback, useEffect, useRef, useState } from "react";
+// phone — bottom sheet with 3 snap points (100 px, opened by level, 64 px from the top), dragged by the handle.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
-import { useMap } from "@/components/map/MapContext";
+import { useMap, type MapLevel } from "@/components/map/MapContext";
 import { MapControls } from "@/components/map/MapControls";
 
 const TAB_BAR = 48; // h-12 of TabBar (components/map/Rail.tsx)
 const COLLAPSED = 100;
-// Opened: the title and the first block (district figures, complex facts) over the map.
-const OPENED = 200;
+// Opened: the title and the first block over the map (district figures; a complex's status, address and facts are taller).
+const OPENED = (level: MapLevel) => (level === "complex" ? 236 : 200);
 const TOP_GAP = 64;
 // Room for the search and chips over the phone map, so the camera keeps targets visible.
 const MOBILE_TOP = 120;
@@ -21,9 +21,9 @@ const subscribeResize = (cb: () => void) => {
   return () => window.removeEventListener("resize", cb);
 };
 
-function snapsFor(height: number) {
+function snapsFor(height: number, level: MapLevel) {
   const max = height - TAB_BAR - TOP_GAP;
-  return [COLLAPSED, Math.min(OPENED, Math.round((height - TAB_BAR) / 2)), max];
+  return [COLLAPSED, Math.min(OPENED(level), Math.round((height - TAB_BAR) / 2)), max];
 }
 
 export function PanelSheet({ mobile, children }: { mobile: boolean; children: React.ReactNode }) {
@@ -54,7 +54,8 @@ export function PanelSheet({ mobile, children }: { mobile: boolean; children: Re
 
 function BottomSheet({ children }: { children: React.ReactNode }) {
   const { scene, setInsets } = useMap();
-  const [snaps, setSnaps] = useState(() => snapsFor(innerHeight));
+  const [viewport, setViewport] = useState(() => innerHeight);
+  const snaps = useMemo(() => snapsFor(viewport, scene.level), [viewport, scene.level]);
   const [index, setIndex] = useState(scene.level === "city" ? 0 : 1);
   const height = useMotionValue(snaps[index]);
   const drag = useRef<{ y: number; h: number; t: number; v: number; moved: boolean } | null>(null);
@@ -67,10 +68,10 @@ function BottomSheet({ children }: { children: React.ReactNode }) {
     [height, snaps],
   );
 
-  useEffect(() => subscribeResize(() => setSnaps(snapsFor(innerHeight))), []);
+  useEffect(() => subscribeResize(() => setViewport(innerHeight)), []);
   useEffect(() => {
-    height.set(snaps[index]);
-    // only on viewport change: index changes animate through snapTo
+    // A new viewport or level moves the sheet to its snap; index changes animate through snapTo.
+    animate(height, snaps[index], { type: "spring", stiffness: 420, damping: 42 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snaps, height]);
 

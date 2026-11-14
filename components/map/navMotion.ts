@@ -36,9 +36,16 @@ export function crossFadeTo(href: string, push: Push) {
 export function closeTo(href: string, push: Push) {
   const card = document.querySelector<HTMLElement>(CARD);
   if (!card || still()) return push(href);
-  const after = () => push(href);
-  if (card.getAttribute("aria-label") === "Раздел") {
-    if (!isPhone()) return crossFadeTo(href, push);
+  const flow = card.getAttribute("aria-label") === "Раздел";
+  if (flow && !isPhone()) return crossFadeTo(href, push);
+  let gone = false;
+  const after = () => {
+    if (gone) return;
+    gone = true;
+    push(href);
+  };
+  setTimeout(after, 400); // a background tab may never finish the animation; the close must still happen
+  if (flow) {
     closing = { slide: true };
     card
       .animate({ transform: ["none", "translateY(100%)"] }, { duration: 240, easing: "cubic-bezier(0.4, 0, 1, 1)", fill: "forwards" })
@@ -46,7 +53,7 @@ export function closeTo(href: string, push: Push) {
     return;
   }
   const page = card.querySelector<HTMLElement>("[data-page]"); // MapShell's page wrapper
-  if (!page) return push(href);
+  if (!page) return after();
   closing = { height: card.offsetHeight };
   page.animate({ opacity: [1, 0] }, { duration: 150, easing: "ease-in", fill: "forwards" }).finished.then(after, after);
 }
