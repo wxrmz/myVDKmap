@@ -20,7 +20,7 @@ const CATEGORY_RULES: [IssueCategory, RegExp][] = [
   ["entrance", /подъезд/],
   ["flooding", /затоп|лужа|лужи|вода стоит|стоит вода|ливнев/],
   ["garbage", /мусор|контейнер|свалк/],
-  ["elevator", /лифт/],
+  ["elevator", /лифт|шахт/],
   ["roof", /крыш|протека/],
   ["yard", /двор|детская площадка|детской площадк|лавочк/],
   ["water", /вода из крана|из крана|нет воды|ржав/],
@@ -42,6 +42,7 @@ const HANDLE_FOR: Record<IssueCategory, string> = {
   other: "универсальный канал",
 };
 
+/** Titles for a report with only a photo; with text, the resident's own words are the title. */
 const TITLES: Record<IssueCategory, string> = {
   road: "Яма на дороге",
   lighting: "Не горит уличное освещение",
@@ -70,11 +71,22 @@ function photoCategory(photo: string | undefined): IssueCategory | null {
   return /pothole/i.test(s) ? "road" : null;
 }
 
+/** Power gone in a flat or the whole house: not street lighting, and no body in the handbook covers it. */
+const POWER_OUT = /электричеств|электроэнерг|розетк|(?:отключ|выключ|пропал|нет|отруб)\S* свет|свет\S* (?:в|во) (?:квартир|доме|всем доме)/;
+
+/** First sentence of the description, up to ~60 characters, as the title. */
+function titleFrom(text: string) {
+  const first = text.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s/)[0].replace(/[.!?…]+$/, "");
+  if (!first) return "";
+  return cap(first.length <= 60 ? first : `${first.slice(0, 60).replace(/[\s,;:—-]+\S*$/, "")}…`);
+}
+
 const today = () => new Date().toLocaleDateString("ru-RU", { timeZone: "Asia/Vladivostok" });
 
 export async function classifyIssue({ text, address, photo }: ClassifyInput): Promise<ClassifyOutput> {
   const t = norm(text);
-  const rule = t ? CATEGORY_RULES.find(([, re]) => re.test(t)) : undefined;
+  const power = POWER_OUT.test(t) && !/подъезд|фонар|улиц/.test(t);
+  const rule = t && !power ? CATEGORY_RULES.find(([, re]) => re.test(t)) : undefined;
   const byPhoto = rule ? null : photoCategory(photo);
   const category: IssueCategory = rule?.[0] ?? byPhoto ?? "other";
   const indoors = category === "lighting" && /подъезд/.test(t);
@@ -91,7 +103,9 @@ export async function classifyIssue({ text, address, photo }: ClassifyInput): Pr
   const severity = /опасн|ребен|дети|детей|авари|травм|искрит|оголен/.test(t) ? 3 : /немного|небольш|слегка/.test(t) ? 1 : 2;
   const label = ISSUE_CATEGORY_LABELS[category];
   const word = rule && new RegExp(`[\\p{L}-]*(?:${rule[1].source})[\\p{L}-]*`, "u").exec(t)?.[0];
-  const reasoning = word
+  const reasoning = power
+    ? `Похоже на отключение электричества в доме, а не на уличное освещение. Обращение пойдёт через ${authority.name}: это ${duty}.`
+    : word
     ? `В описании есть «${word}» — это категория «${label}». ${authority.name} отвечает за: ${duty}.`
     : byPhoto
       ? `На фото — разрушенное дорожное покрытие, значит категория «${label}». ${authority.name} отвечает за: ${duty}.`
@@ -112,7 +126,8 @@ export async function classifyIssue({ text, address, photo }: ClassifyInput): Pr
     `Дата: ${today()}`,
   ].join("\n\n");
 
-  return { category, title: indoors ? "Не горит свет в подъезде" : TITLES[category], severity, authorityId: authority.id, reasoning, appealText };
+  const title = titleFrom(text) || (indoors ? "Не горит свет в подъезде" : TITLES[category]);
+  return { category, title, severity, authorityId: authority.id, reasoning, appealText };
 }
 
 // ---------------------------------------------------------------- parseBill

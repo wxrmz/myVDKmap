@@ -34,12 +34,23 @@ async function main() {
     ["Из крана течёт ржавая вода", "water", "rpn"],
     ["Соседи включают громкую музыку ночью", "noise", "rpn"],
     ["Сломалась входная дверь", "other", "pos"],
+    ["Ключи упали в шахту", "elevator", "uk"],
+    ["Отключение света", "other", "pos"],
+    ["Нет света в квартире с утра", "other", "pos"],
+    ["Отключили свет в подъезде", "lighting", "uk"],
   ];
   for (const [text, category, authorityId] of cases) {
     const r = await classifyIssue({ text, address: "ул. Нейбута, 17" });
     assert.deepEqual([r.category, r.authorityId], [category, authorityId], text);
   }
   assert.equal((await classifyIssue({ text: "Опасная яма, ребёнок упал", address: "x" })).severity, 3);
+  // The title is the resident's words, not a category template.
+  const keys = await classifyIssue({ text: "Ключи упали в шахту лифта", address: "x" });
+  assert.deepEqual([keys.category, keys.title], ["elevator", "Ключи упали в шахту лифта"]);
+  assert.equal((await classifyIssue({ text: "отключение света. Второй день", address: "x" })).title, "Отключение света");
+  const long = (await classifyIssue({ text: "Во дворе у третьего подъезда уже месяц стоит сломанная машина без колёс и мешает проезду", address: "x" })).title;
+  assert.ok(long.length <= 61 && long.endsWith("…"), long);
+  assert.equal(photoOnly.title, "Яма на дороге");
 
   // --- parseBill ---
   const demo = BillOutputSchema.parse(await parseBill({ demo: true }));
