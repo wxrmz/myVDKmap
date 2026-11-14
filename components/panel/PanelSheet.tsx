@@ -7,7 +7,7 @@ import { animate, motion, useMotionValue } from "framer-motion";
 import { useMap } from "@/components/map/MapContext";
 import { MapControls } from "@/components/map/MapControls";
 
-const TAB_BAR = 64;
+const TAB_BAR = 56; // h-14 of TabBar (components/map/Rail.tsx)
 const COLLAPSED = 112;
 const TOP_GAP = 64;
 // Room for the search and chips over the phone map, so the camera keeps targets visible.
@@ -129,11 +129,11 @@ function BottomSheet({ children }: { children: React.ReactNode }) {
             snapTo((index + 1) % snaps.length);
           }
         }}
-        className="grid h-7 w-full shrink-0 cursor-grab touch-none place-items-center active:cursor-grabbing"
+        className="grid h-5 w-full shrink-0 cursor-grab touch-none place-items-center active:cursor-grabbing"
       >
         <span className="h-1.5 w-10 rounded-full bg-foreground/20" />
       </button>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [&>div>div:first-child]:pt-1">{children}</div>
     </motion.section>
   );
 }

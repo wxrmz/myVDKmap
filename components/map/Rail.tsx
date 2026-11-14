@@ -136,7 +136,7 @@ export function TabBar() {
   return (
     <nav
       aria-label="Разделы"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid h-14 grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {[MAP, ...FLOWS, CABINET].map((item) => (
         <TabLink key={item.href} {...item} active={isActive(item.href, pathname)} />
