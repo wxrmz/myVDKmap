@@ -20,7 +20,7 @@
 - `app/(map)/changes/page.tsx` — `/changes[?building=&work=]`: `WorksFeed` (+ `getWorkStreets`) and `DocumentParser`
 - `app/(map)/me/page.tsx` — `/me`: `CabinetPage`
 - `components/map/MapShell.tsx` — shell §5.1: rail, map beside the rail, panel on map pages, flow pages as an overlay (desktop 680 px card, phone full-screen sheet; hidden while `data-map-pick`), tab bar; applies the font size setting, loads the session
-- `components/map/Rail.tsx` — `Rail` (desktop 88 px), `TabBar` (phone, 56 px), `isMapPath`; sections prefetched after the start by `useIdlePrefetch`
+- `components/map/Rail.tsx` — `Rail` (desktop 88 px), `TabBar` (phone, 48 px), `isMapPath`; sections prefetched after the start by `useIdlePrefetch`
 - `components/map/useIdlePrefetch.ts` — `useIdlePrefetch(hrefs)`: prefetch once the page has loaded and the browser is idle
 - `components/panel/PanelSheet.tsx` — desktop 384 px panel column under the search; phone bottom sheet (112 px / half / 64 px from top, drag or tap the handle); sets map insets
 - `components/map/MapControls.tsx` — search; on phones round theme, «Мои дома» and layers buttons

@@ -40,7 +40,7 @@ export function MapShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Rail />
-      <MapView className="bottom-14 md:bottom-0 md:left-[88px]" />
+      <MapView className="bottom-12 md:bottom-0 md:left-[88px]" />
       {isMapPath(pathname) ? (
         <PanelSheet mobile={mobile}>{page}</PanelSheet>
       ) : (
@@ -63,7 +63,7 @@ function FlowOverlay({ mobile, children }: { mobile: boolean; children: React.Re
       // While the report wizard takes a point (`data-map-pick` on <html>), the sheet steps aside to show the map.
       <section
         aria-label="Раздел"
-        className="fixed inset-x-0 top-0 bottom-14 z-20 overflow-y-auto overscroll-contain bg-background animate-in fade-in slide-in-from-bottom-4 duration-200 [[data-map-pick]_&]:invisible"
+        className="fixed inset-x-0 top-0 bottom-12 z-20 overflow-y-auto overscroll-contain bg-background animate-in fade-in slide-in-from-bottom-4 duration-200 [[data-map-pick]_&]:invisible"
       >
         {children}
       </section>

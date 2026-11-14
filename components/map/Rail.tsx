@@ -122,7 +122,7 @@ function TabLink({ href, label, Icon, active }: typeof MAP & { active: boolean }
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
+        "flex flex-col items-center justify-end gap-0.5 pb-1 text-[11px] leading-tight font-medium transition-colors",
         active ? "text-foreground" : "text-muted-foreground",
       )}
     >
@@ -141,7 +141,7 @@ export function TabBar() {
   return (
     <nav
       aria-label="Разделы"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-14 grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid h-12 grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {[MAP, ...FLOWS, CABINET].map((item) => (
         <TabLink key={item.href} {...item} active={isActive(item.href, pathname)} />

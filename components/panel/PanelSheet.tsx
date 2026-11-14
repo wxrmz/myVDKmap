@@ -7,7 +7,7 @@ import { animate, motion, useMotionValue } from "framer-motion";
 import { useMap } from "@/components/map/MapContext";
 import { MapControls } from "@/components/map/MapControls";
 
-const TAB_BAR = 56; // h-14 of TabBar (components/map/Rail.tsx)
+const TAB_BAR = 48; // h-12 of TabBar (components/map/Rail.tsx)
 const COLLAPSED = 112;
 // Opened: the title and the first block (district figures, complex facts) over the map.
 const OPENED = 224;
