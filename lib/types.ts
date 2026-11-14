@@ -179,6 +179,8 @@ export interface CityWorkDTO {
   endDate: string | null;
   lat: number | null;
   lng: number | null;
+  /** The news article it was read from; null for the prepared works. */
+  sourceUrl: string | null;
   buildings: Pick<BuildingDTO, "id" | "address">[];
 }
 

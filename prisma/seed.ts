@@ -428,15 +428,18 @@ const workRows = () => [
   prisma.cityWorkImpact.createMany({ data: works.flatMap((w) => w.buildingIds.map((buildingId) => ({ workId: w.row.id, buildingId }))) }),
 ];
 
-/** `--works`: replace only city works, adding the houses they need; issues, votes and users stay (safe on a live server). */
+/**
+ * `--works`: replace only the prepared city works, adding the houses they need; issues, votes, users and the works
+ * read from the news feed (lib/worksFeed.ts) stay (safe on a live server).
+ */
 async function updateWorks() {
   const needed = new Set(works.flatMap((w) => w.buildingIds));
   const have = new Set((await prisma.building.findMany({ where: { id: { in: [...needed] } }, select: { id: true } })).map((b) => b.id));
   const added = buildings.filter((b) => needed.has(b.id) && !have.has(b.id));
   await prisma.$transaction([
     prisma.building.createMany({ data: added }),
-    prisma.cityWorkImpact.deleteMany(),
-    prisma.cityWork.deleteMany(),
+    prisma.cityWorkImpact.deleteMany({ where: { work: { sourceUrl: null } } }),
+    prisma.cityWork.deleteMany({ where: { sourceUrl: null } }),
     ...workRows(),
   ]);
   console.log(`works ${works.length}, new houses ${added.length}`);

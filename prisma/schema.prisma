@@ -139,6 +139,8 @@ model CityWork {
   endDate      DateTime?
   lat          Float?
   lng          Float?
+  /// The article a work was read from (lib/worksFeed.ts); null for the prepared works of the seed.
+  sourceUrl    String?
   impacts      CityWorkImpact[]
 }
 

@@ -57,6 +57,7 @@ const toWorkDTO = (w: CityWork & { impacts: { building: { id: string; address: s
   endDate: w.endDate?.toISOString() ?? null,
   lat: w.lat,
   lng: w.lng,
+  sourceUrl: w.sourceUrl,
   buildings: w.impacts.map((i) => i.building),
 });
 

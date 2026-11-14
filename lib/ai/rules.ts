@@ -5,7 +5,7 @@ import { BILL_ITEM_GLOSSARY, DEMO_BILLS, DEMO_BUILDING_ID, TARIFFS, periodLabel 
 import { DEMO_DOCUMENTS } from "@/lib/fixtures/documents";
 import { plural } from "@/lib/health";
 import { getAuthorities, getDistrict, getDistrictStats } from "@/lib/queries";
-import { getWorkStreets, streetPattern } from "@/lib/search";
+import { ensureOsmBuilding, getWorkStreets, streetPattern, streetPoints } from "@/lib/search";
 import { ISSUE_CATEGORY_LABELS, type BillItem, type BillKind, type IssueCategory, type WorkKind } from "@/lib/types";
 import { norm, vlDay } from "@/lib/utils";
 import type { BillInput, BillOutput, BillRaw, ClassifyInput, ClassifyOutput, DigestOutput, DocSummary } from "./schemas";
@@ -350,7 +350,10 @@ export const houseNumbers = (s: string) => parseHouseNumbers(s).numbers;
 /** Streets of the city named in the text, each with the house numbers written right after its mentions. */
 function streetRefs(text: string) {
   const t = norm(text);
-  const streets = getWorkStreets([{ id: "doc", title: "", plainSummary: "", sourceText: text, buildings: [] }]).doc ?? [];
+  const found = getWorkStreets([{ id: "doc", title: "", plainSummary: "", sourceText: text, buildings: [] }]).doc ?? [];
+  // «Зелёный Бульвар» in the text also matches «пер. Зелёный»: a street whose name is part of another found one is dropped.
+  const name = (street: string) => norm(street.replace(/^\S+\.\s*/, "")).split(/\s+/);
+  const streets = found.filter((a) => !found.some((b) => name(b).length > name(a).length && name(a).every((w) => name(b).includes(w))));
   return streets.flatMap((street) => {
     const re = streetPattern(street)!;
     // Street names are capitalised: «ул. Связи» counts, «в связи с» does not.
@@ -395,10 +398,34 @@ export async function bindBuildings(text: string): Promise<{ id: string; address
   });
 }
 
+/**
+ * Houses a news text names and the point of the work: houses in the DB as `bindBuildings` finds them, plus houses
+ * with numbers in the text that only OSM knows (they get a passport). Without any house the point is the middle of
+ * the first named street; null when the text names no street of the city.
+ */
+export async function newsHouses(text: string): Promise<{ ids: string[]; lat: number; lng: number } | null> {
+  const refs = streetRefs(text);
+  const ids = new Set((await bindBuildings(text)).map((b) => b.id));
+  for (const r of refs)
+    for (const p of r.numbers.length ? streetPoints(r.street) : [])
+      if (houseMatches(r.numbers, p[2])) {
+        const id = await ensureOsmBuilding(p[0]); // one at a time: two creations of one address would collide
+        if (id) ids.add(id);
+      }
+  const points = ids.size
+    ? (await prisma.building.findMany({ where: { id: { in: [...ids] } }, select: { lat: true, lng: true } })).map((b) => [b.lat, b.lng])
+    : (refs.map((r) => streetPoints(r.street)).find((ps) => ps.length) ?? []).map((p) => [p[3], p[4]]);
+  if (!points.length) return null;
+  const mid = [0, 1].map((i) => points.reduce((s, p) => s + p[i], 0) / points.length);
+  // The house nearest the mean: the mean of a bent street can fall off it.
+  const [lat, lng] = ids.size ? mid : points.reduce((a, b) => (Math.hypot(a[0] - mid[0], a[1] - mid[1]) <= Math.hypot(b[0] - mid[0], b[1] - mid[1]) ? a : b));
+  return { ids: [...ids], lat, lng };
+}
+
 const KIND_RULES: [WorkKind, RegExp][] = [
   ["cap_repair", /капремонт|капитальн\S* ремонт/],
   ["utility_outage", /отключ|горяч|холодн|электр|водоснабж|водопровод|теплотрасс|без отоплен/],
-  ["road", /асфальт|дорог|проезд|перекры|движени/],
+  ["road", /асфальт|дорог|проезд|перекры|перекрест|движени/],
   ["improvement", /благоустр|сквер|парк(?!ов)/],
   ["construction", /строит|мост/],
 ];

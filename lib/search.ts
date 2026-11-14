@@ -149,6 +149,12 @@ export async function searchAll(q: string, limit = 400): Promise<SearchResult[]>
   return out;
 }
 
+/** OSM address points on a street, the street spelled as in data/osm-addresses.json («ул. Крыгина»). */
+export const streetPoints = (street: string) => {
+  const key = norm(street);
+  return [...addressPoints().byId.values()].filter((p) => norm(p[1]) === key);
+};
+
 // --- lazy passport for an OSM address point (§6.3) ---
 export async function ensureOsmBuilding(osmId: number): Promise<string | null> {
   const id = `osm-${osmId}`;

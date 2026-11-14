@@ -141,6 +141,11 @@ function WorkCard({ work: w, mine, active }: { work: CityWorkDTO; mine: boolean;
       <details className="text-sm">
         <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">Исходный текст</summary>
         <p className="mt-2 whitespace-pre-wrap text-muted-foreground">{w.sourceText}</p>
+        {w.sourceUrl && (
+          <a href={w.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block font-medium underline underline-offset-4">
+            Новость целиком на newsvl.ru
+          </a>
+        )}
       </details>
     </li>
   );
