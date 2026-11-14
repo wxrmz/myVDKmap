@@ -99,7 +99,7 @@
 - `public/demo/` — demo images (unchanged)
 - `scripts/` — OSM fetch scripts (unchanged)
 - `prisma/schema.prisma` — Prisma schema §3.2 (sqlite)
-- `prisma/seed.ts` — deterministic seed §3.3 (salted mulberry32, turf point-in-polygon; houses near microdistricts and on city-work streets; issue ids `iss-NNN`)
+- `prisma/seed.ts` — deterministic seed §3.3 (salted mulberry32, turf point-in-polygon; houses near microdistricts and on city-work streets; issue ids `iss-NNN`); `npm run seed:works` (`--works`) replaces only city works and adds their houses — issues, votes and users stay, safe on the server
 - `components.json` — shadcn config
 - `eslint.config.mjs`, `postcss.config.mjs`, `next.config.ts`, `tsconfig.json` — tooling config
 - `.env.example` — env keys (§8)

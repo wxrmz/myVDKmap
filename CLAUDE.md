@@ -6,7 +6,7 @@ Spec: `START_PROMPT.md` is normative (sections cited as §N); decisions on top o
 
 ## Commands
 - Install: `npm install` (runs `prisma generate`)
-- DB: `npx prisma db push && npm run seed`
+- DB: `npx prisma db push && npm run seed` (wipes issues and votes) · city works only, safe on the server: `npm run seed:works`
 - Dev: `npm run dev` (webpack, no Turbopack) · Prod preview: `npm run preview`
 - Types: `npx tsc --noEmit` · Lint: `npm run lint`
 - Self-checks: `npx tsx lib/<name>.test.ts` (node:assert, no test framework)

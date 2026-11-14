@@ -10,6 +10,7 @@
     "lint": "eslint",
     "setup": "prisma db push && node scripts/fetch-geo.mjs && prisma db seed",
     "seed": "prisma db seed",
+    "seed:works": "tsx prisma/seed.ts --works",
     "fetch-geo": "node scripts/fetch-geo.mjs",
     "fetch-buildings": "node scripts/fetch-buildings.mjs",
     "postinstall": "prisma generate"

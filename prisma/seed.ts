@@ -423,6 +423,25 @@ for (const h of HOTSPOTS) {
 }
 for (let i = 0; i < BACKGROUND_COUNT; i++) addIssue(pick(pool), pick(BACKGROUND));
 
+const workRows = () => [
+  prisma.cityWork.createMany({ data: works.map((w) => w.row) }),
+  prisma.cityWorkImpact.createMany({ data: works.flatMap((w) => w.buildingIds.map((buildingId) => ({ workId: w.row.id, buildingId }))) }),
+];
+
+/** `--works`: replace only city works, adding the houses they need; issues, votes and users stay (safe on a live server). */
+async function updateWorks() {
+  const needed = new Set(works.flatMap((w) => w.buildingIds));
+  const have = new Set((await prisma.building.findMany({ where: { id: { in: [...needed] } }, select: { id: true } })).map((b) => b.id));
+  const added = buildings.filter((b) => needed.has(b.id) && !have.has(b.id));
+  await prisma.$transaction([
+    prisma.building.createMany({ data: added }),
+    prisma.cityWorkImpact.deleteMany(),
+    prisma.cityWork.deleteMany(),
+    ...workRows(),
+  ]);
+  console.log(`works ${works.length}, new houses ${added.length}`);
+}
+
 async function main() {
   await prisma.$transaction([
     prisma.cityWorkImpact.deleteMany(),
@@ -451,8 +470,7 @@ async function main() {
     prisma.bill.createMany({
       data: DEMO_BILLS.map((b) => ({ id: b.id, buildingId: b.buildingId, period: b.period, items: JSON.stringify(b.items), total: b.total })),
     }),
-    prisma.cityWork.createMany({ data: works.map((w) => w.row) }),
-    prisma.cityWorkImpact.createMany({ data: works.flatMap((w) => w.buildingIds.map((buildingId) => ({ workId: w.row.id, buildingId }))) }),
+    ...workRows(),
   ]);
 
   const demoIssues = issueRows.filter((i) => i.buildingId === DEMO_BUILDING_ID);
@@ -467,7 +485,7 @@ async function main() {
   );
 }
 
-main()
+(process.argv.includes("--works") ? updateWorks() : main())
   .catch((e) => {
     console.error(e);
     process.exitCode = 1;
