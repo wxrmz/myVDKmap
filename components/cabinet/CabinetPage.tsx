@@ -115,7 +115,7 @@ function SignedIn({ user }: { user: PublicUser }) {
                   />
                 )}
                 <span className="relative grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-foreground ring-1 ring-border">
-                  <Icon className="size-4" />
+                  <Icon className="size-5" />
                 </span>
                 <span className="relative flex-1">{label}</span>
                 {count ? <span className="relative px-1 text-xs tabular-nums opacity-70">{count}</span> : null}
