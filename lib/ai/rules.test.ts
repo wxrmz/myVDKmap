@@ -109,7 +109,14 @@ async function main() {
   }))!;
   assert.equal(gis.period, "2026-10");
   assert.equal(gis.total, 974.97);
-  assert.deepEqual(gis.items.map((i) => [i.name, i.unit, i.amount]), [["Содержание помещения", "м²", 974.97], ["в т. ч. Холодная вода", "м²", 4.77]]);
+  // «в том числе» resources are inside «Содержание помещения»: not shown as charges of their own.
+  assert.deepEqual(gis.items.map((i) => [i.name, i.unit, i.amount]), [["Содержание помещения", "м²", 974.97]]);
+  // A service after the resources is a charge again.
+  const after = (await parseBill({
+    kind: "other",
+    text: ["Содержание помещения 974,97", "в том числе коммунальные ресурсы:", "Горячая вода 12,94", "Электрическая энергия 23,61", "Домофон 60,00", "Итого: 1 034,97"].join("\n"),
+  }))!;
+  assert.deepEqual(after.items.map((i) => [i.name, i.amount]), [["Содержание помещения", 974.97], ["Домофон", 60]]);
 
   // --- houseNumbers ---
   assert.deepEqual(houseNumbers(", д. 5"), ["5"]);

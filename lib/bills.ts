@@ -9,7 +9,7 @@ type Line = BillItem & { plainName?: string };
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const num = (n: number) => n.toLocaleString("ru-RU", { maximumFractionDigits: 3 });
 const label = (i: Line) => `«${i.plainName ?? i.name}»`;
-/** «в т. ч. …» lines are parts of the line above, already inside its sum. */
+/** «в т. ч. …» lines are parts of the line above, already inside its sum: receipts saved before such lines were left out. */
 export const isPart = (i: { name: string }) => i.name.startsWith("в т. ч. ");
 const ownLines = <T extends Line>(items: T[]) => items.filter((i) => !isPart(i));
 const pct = (now: number, before: number) => Math.round(((now - before) / before) * 100);

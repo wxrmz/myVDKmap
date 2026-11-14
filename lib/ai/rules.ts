@@ -147,6 +147,8 @@ const UNIT_LABEL: Record<string, string> = { 2: "м²", 3: "м³" };
  * text of a GIS ЖКХ payment document. In the latter, services are only the rows of the «Расчет размера платы» table: the
  * payee block above it and the reference volumes below it are not charges.
  */
+const RESOURCE = /вод|сточн|электр|энерг|тепл|газ/;
+
 function parseBillText(text: string): BillRaw {
   let period: string | undefined;
   let total: number | undefined;
@@ -155,7 +157,9 @@ function parseBillText(text: string): BillRaw {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const table = lines.findIndex((l) => /^расч[её]т размера платы/.test(norm(l)));
   let inTable = table < 0;
-  let partOf = false; // rows after «в том числе» are parts of the row above, already in its sum
+  // Rows after «в том числе» are the resources inside the row above (water, power for the common property), already in
+  // its sum: not charges of their own, so they are left out. The first row that is not a resource ends the list.
+  let partOf = false;
   lines.forEach((line, n) => {
     const l = norm(line);
     if (n === table) inTable = true;
@@ -188,7 +192,9 @@ function parseBillText(text: string): BillRaw {
     const unit = UNIT.exec(name);
     if (unit) name = name.slice(0, unit.index).trim();
     if (!/\p{L}/u.test(name)) return;
-    const item: BillItem = { name: partOf ? `в т. ч. ${name}` : name, amount: num(money[1]) };
+    if (partOf && RESOURCE.test(norm(name))) return;
+    partOf = false;
+    const item: BillItem = { name, amount: num(money[1]) };
     if (unit) item.unit = UNIT_LABEL[unit[1].replace(/\D/g, "")] ?? "кВт·ч";
     const use = /([\d.,]+)\s*(\S+)?\s*[×x*]\s*([\d\s.,]+?)\s*(?:₽|руб\.?)?$/.exec(parts.length > 2 ? parts.slice(1, -1).join(" ") : "");
     if (use) Object.assign(item, { volume: num(use[1]), ...(use[2] && { unit: use[2] }), tariff: num(use[3]) });
