@@ -39,14 +39,25 @@ function districtLook(color: string, theme: Theme, chosen: boolean, focused: boo
   return { color: rgba(color, fill), strokeColor: rgba(color, 1), strokeWidth: (light ? 2 : 1) + (chosen ? 1 : 0) };
 }
 
+const otherTheme = (t: Theme): Theme => (t === "light" ? "dark" : "light");
 /**
- * Night map: a second map, always in the dark style, laid just above the main (always light) map's canvas and under its
- * markers, following its camera. The theme is which one shows: switching is an opacity flip, nothing is redrawn.
+ * Second map: the main map is drawn in the page's theme at load, the second one in the other theme, laid just above
+ * the main canvas and under its markers. The theme is which one shows: switching is an opacity flip, nothing is
+ * redrawn. While hidden it catches up with the camera only when a move ends, so a phone draws one map per frame.
  */
-const setNight = (night: MapGL.Map | undefined, theme: Theme) => {
-  const el = night?.getContainer();
-  if (el) el.style.opacity = theme === "dark" ? "1" : "0";
+const setAlt = (api: Api | null, theme: Theme) => {
+  if (!api?.alt) return;
+  const show = theme !== api.base;
+  if (show) syncCamera(api.map, api.alt);
+  api.alt.getContainer().style.opacity = show ? "1" : "0";
 };
+const altShown = (alt: MapGL.Map) => alt.getContainer().style.opacity === "1";
+function syncCamera(from: MapGL.Map, to: MapGL.Map) {
+  to.setCenter(from.getCenter(), { animate: false });
+  to.setZoom(from.getZoom(), { animate: false });
+  to.setRotation(from.getRotation(), { animate: false });
+  to.setPitch(from.getPitch(), { animate: false });
+}
 /** Building highlight on both maps. */
 const selectOn = (maps: (MapGL.Map | undefined)[], ids: string[]) => maps.forEach((m) => m?.setSelectedObjects(ids));
 
@@ -126,7 +137,7 @@ interface Latest {
 }
 
 /** Hover, tip and highlight logic outside React: hover never re-renders the map or its markers. */
-function createUi(gl: typeof MapGL, map: MapGL.Map, night: MapGL.Map | undefined, latest: { current: Latest }) {
+function createUi(gl: typeof MapGL, map: MapGL.Map, alt: MapGL.Map | undefined, base: Theme, latest: { current: Latest }) {
   let district: { id: string; x: number; y: number } | null = null;
   let onMarker = false;
   let lit: { id: string; polygons: MapGL.Polygon[] } | null = null;
@@ -165,7 +176,8 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, night: MapGL.Map | undefined
     if (!id || !shape || !color) return;
     const draw = (on: MapGL.Map, alpha: number) =>
       shape.parts.map((coordinates) => new gl.Polygon(on, { coordinates, color: rgba(color, alpha), strokeWidth: 0, interactive: false, zIndex: 1 }));
-    lit = { id, polygons: [...draw(map, focus ? 0.2 : 0.32), ...(night ? draw(night, focus ? 0.2 : 0.3) : [])] };
+    const alpha = (t: Theme) => (focus ? 0.2 : t === "light" ? 0.32 : 0.3);
+    lit = { id, polygons: [...draw(map, alpha(base)), ...(alt ? draw(alt, alpha(otherTheme(base))) : [])] };
   };
   const hide = () => {
     onMarker = false;
@@ -180,11 +192,11 @@ function createUi(gl: typeof MapGL, map: MapGL.Map, night: MapGL.Map | undefined
     if (picking()) return point(lngLat);
     if (map.getZoom() < HOUSE_CLICK_ZOOM) return orElse?.();
     // Highlight at once: the passport needs two requests, the click should answer now.
-    if (objectId) selectOn([map, night], [gisId(objectId)]);
+    if (objectId) selectOn([map, alt], [gisId(objectId)]);
     passportAt(lngLat, objectId).then((id) => {
       if (id && objectId) clickedBuilding.set(id, gisId(objectId));
       if (id && !picking()) latest.current.push(houseHref(id));
-      else if (!id && objectId) selectOn([map, night], houseSelection);
+      else if (!id && objectId) selectOn([map, alt], houseSelection);
     });
   };
   map.on("click", (e) => {
@@ -235,7 +247,9 @@ type Ui = ReturnType<typeof createUi>;
 interface Api {
   gl: typeof MapGL;
   map: MapGL.Map;
-  night?: MapGL.Map;
+  /** The page's theme when the map loaded: the main map's style. */
+  base: Theme;
+  alt?: MapGL.Map;
   ui: Ui;
 }
 
@@ -265,7 +279,7 @@ export function MapView({ className }: { className?: string }) {
       .then(({ load }) => load())
       .then((gl) => {
         if (cancelled) return;
-        const dark = document.documentElement.classList.contains("dark");
+        const base: Theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
         const view = {
           key: KEY,
           center: START_CENTER,
@@ -282,59 +296,60 @@ export function MapView({ className }: { className?: string }) {
         };
         const map = new gl.Map(el, {
           ...view,
-          style: STYLES.light,
+          style: STYLES[base],
           // Bottom right: on phones the right edge holds the theme, «Мои дома» and layers buttons.
           zoomControl: "bottomRight",
         });
-        // The night map lives just above the main canvas, under its markers and controls; clicks pass through to it.
-        const nightEl = document.createElement("div");
-        nightEl.style.cssText = "position:absolute;inset:0;pointer-events:none";
-        map.getCanvas().after(nightEl);
-        const night = new gl.Map(nightEl, { ...view, style: STYLES.dark, zoomControl: false });
-        setNight(night, dark ? "dark" : "light");
-        (dark ? night : map).once("idle", announceReady);
-        created = { gl, map, night, ui: createUi(gl, map, night, latest) };
+        // The second map lives just above the main canvas, under its markers and controls; clicks pass through to it.
+        const altEl = document.createElement("div");
+        altEl.style.cssText = "position:absolute;inset:0;pointer-events:none;opacity:0";
+        map.getCanvas().after(altEl);
+        const alt = new gl.Map(altEl, { ...view, style: STYLES[otherTheme(base)], zoomControl: false });
+        map.once("idle", announceReady);
+        created = { gl, map, base, alt, ui: createUi(gl, map, alt, base, latest) };
         setApi(created);
       })
       .catch(announceReady); // the splash must not wait for a map that will never load
     return () => {
       cancelled = true;
       created?.ui.destroy();
-      created?.night?.destroy();
+      created?.alt?.destroy();
       created?.map.destroy();
     };
   }, []);
 
-  // The night map follows the main camera (once per frame).
+  // The second map follows the main camera: once per frame while shown, at the end of each move while hidden
+  // (it stays loaded there, so a theme switch shows it at once).
   useEffect(() => {
-    const night = api?.night;
-    if (!api || !night) return;
+    const alt = api?.alt;
+    if (!api || !alt) return;
     const main = api.map;
     let frame = 0;
     const sync = () => {
       frame = 0;
-      night.setCenter(main.getCenter(), { animate: false });
-      night.setZoom(main.getZoom(), { animate: false });
-      night.setRotation(main.getRotation(), { animate: false });
-      night.setPitch(main.getPitch(), { animate: false });
+      syncCamera(main, alt);
     };
-    const queue = () => (frame ||= requestAnimationFrame(sync));
+    const queue = () => {
+      if (altShown(alt)) frame ||= requestAnimationFrame(sync);
+    };
     const events = ["move", "zoom", "rotation", "pitch"] as const;
     events.forEach((e) => main.on(e, queue));
+    main.on("moveend", sync);
     sync();
     return () => {
       cancelAnimationFrame(frame);
       events.forEach((e) => main.off(e, queue));
+      main.off("moveend", sync);
     };
   }, [api]);
 
-  // Theme: the toggle sends `theme:switch` inside its View Transition step, so the night map flips with the page;
+  // Theme: the toggle sends `theme:switch` inside its View Transition step, so the second map flips with the page;
   // any other theme change (system setting) just follows.
-  useEffect(() => setNight(api?.night, theme), [api, theme]);
+  useEffect(() => setAlt(api, theme), [api, theme]);
   useEffect(() => {
     if (!api) return;
     const onSwitch = (e: Event) => {
-      setNight(api.night, (e as CustomEvent<ThemeSwitchDetail>).detail.theme);
+      setAlt(api, (e as CustomEvent<ThemeSwitchDetail>).detail.theme);
     };
     window.addEventListener("theme:switch", onSwitch);
     return () => window.removeEventListener("theme:switch", onSwitch);
@@ -352,28 +367,28 @@ export function MapView({ className }: { className?: string }) {
   }, [api]);
 
   // Districts: rebuilt on focus or house-zoom change only; hover draws a separate overlay (createUi). The main map's
-  // polygons take the clicks; the night map only shows its own, in dark colours.
+  // polygons take the clicks; the second map only shows its own, in its theme's colours.
   useEffect(() => {
     if (!api) return;
-    const { gl, map, night, ui } = api;
+    const { gl, map, alt, base, ui } = api;
     const polygons = districts.flatMap((d) => {
       const shape = shapes[d.id];
       if (!shape) return [];
       const chosen = focus === d.id;
       return shape.parts.flatMap((coordinates) => {
-        const dark = night
-          ? [new gl.Polygon(night, { coordinates, ...districtLook(d.color, "dark", chosen, focus !== undefined), interactive: false })]
+        const other = alt
+          ? [new gl.Polygon(alt, { coordinates, ...districtLook(d.color, otherTheme(base), chosen, focus !== undefined), interactive: false })]
           : [];
         const p = new gl.Polygon(map, {
           coordinates,
-          ...districtLook(d.color, "light", chosen, focus !== undefined),
+          ...districtLook(d.color, base, chosen, focus !== undefined),
           interactive: !houseZoom,
         });
         p.on("mouseover", (e) => ui.district(d.id, e.point));
         p.on("mousemove", (e) => ui.district(d.id, e.point));
         p.on("mouseout", () => ui.district(null));
         p.on("click", (e) => ui.click(e.lngLat, undefined, () => ui.go(districtHref(d.id))));
-        return [p, ...dark];
+        return [p, ...other];
       });
     });
     ui.restyle();
@@ -385,7 +400,7 @@ export function MapView({ className }: { className?: string }) {
 
   useEffect(() => {
     api?.map.setPadding(insets, { duration: 300 });
-    api?.night?.setPadding(insets, { duration: 300 });
+    api?.alt?.setPadding(insets, { duration: 300 });
     // 2GIS zoom and copyright controls stay clear of the panel, search and sheet.
     api?.map.setControlsLayoutPadding(insets);
   }, [api, insets]);
@@ -417,7 +432,7 @@ export function MapView({ className }: { className?: string }) {
     const house = scene.buildings?.find((b) => b.id === scene.buildingId) ?? scene.focus;
     if (!house) return;
     let live = true;
-    const select = (id: string) => selectOn([api.map, api.night], (houseSelection = [id]));
+    const select = (id: string) => selectOn([api.map, api.alt], (houseSelection = [id]));
     const clicked = scene.buildingId && clickedBuilding.get(scene.buildingId);
     if (clicked) select(clicked);
     else
@@ -426,7 +441,7 @@ export function MapView({ className }: { className?: string }) {
       });
     return () => {
       live = false;
-      selectOn([api.map, api.night], (houseSelection = []));
+      selectOn([api.map, api.alt], (houseSelection = []));
     };
   }, [api, scene]);
 

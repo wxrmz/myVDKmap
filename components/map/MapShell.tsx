@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react"
 import { usePathname } from "next/navigation";
 import { useFontScale } from "@/components/cabinet/shared";
 import { MapView } from "@/components/map/MapView";
+import { reopenClosedCard } from "@/components/panel/CloseButton";
 import { PanelSheet } from "@/components/panel/PanelSheet";
 import { useSession } from "@/lib/session";
 import { useMap } from "./MapContext";
@@ -33,6 +34,7 @@ export function MapShell({ children }: { children: React.ReactNode }) {
     if (shown.current === pathname) return;
     shown.current = pathname;
     pageShown();
+    if (reopenClosedCard()) return; // the panel closed by its cross slides back in whole
     if (document.documentElement.hasAttribute(NAV_VT) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     pageRef.current?.animate({ opacity: [0, 1] }, { duration: 200, easing: "ease-out" });
   }, [pathname]);
