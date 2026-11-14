@@ -3,7 +3,7 @@
 // Navigation (§5.1): desktop rail 88 px and the phone tab bar. Links are fully prefetched.
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { CircleUser, Construction, Heart, Layers, Map as MapIcon, Receipt, Search, TriangleAlert } from "lucide-react";
+import { CircleUser, Construction, Heart, Layers, Map as MapIcon, ReceiptRussianRuble, Search, TriangleAlert } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SEARCH_INPUT_ID } from "@/components/search/SearchBox";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ import { LayersPopover } from "./LayersPopover";
 const MAP = { href: "/", label: "Карта", Icon: MapIcon };
 const FLOWS = [
   { href: "/report", label: "Проблема", Icon: TriangleAlert },
-  { href: "/bill", label: "Квитанция", Icon: Receipt },
+  { href: "/bill", label: "Квитанция", Icon: ReceiptRussianRuble },
   { href: "/changes", label: "Работы", Icon: Construction },
 ];
 const CABINET = { href: "/me", label: "Кабинет", Icon: CircleUser };
@@ -31,7 +31,7 @@ function RailLink({ href, label, Icon }: typeof MAP) {
   const active = isActive(href, usePathname());
   return (
     <Link href={href} prefetch className={itemClass(active)} aria-current={active ? "page" : undefined}>
-      <Icon className="size-5" />
+      <Icon className="size-6" />
       {label}
     </Link>
   );
@@ -51,12 +51,12 @@ export function Rail() {
     >
       <RailLink {...MAP} />
       <button type="button" onClick={focusSearch} className={itemClass(false)}>
-        <Search className="size-5" />
+        <Search className="size-6" />
         Поиск
       </button>
       <LayersPopover side="right" align="start">
         <button type="button" className={itemClass(false)}>
-          <Layers className="size-5" />
+          <Layers className="size-6" />
           Слои
         </button>
       </LayersPopover>
@@ -67,7 +67,7 @@ export function Rail() {
       <div className="mt-auto flex w-full flex-col items-center gap-1">
         <FavoritesPopover side="right" align="end">
           <button type="button" className={itemClass(false)}>
-            <Heart className="size-5" />
+            <Heart className="size-6" />
             Мои дома
           </button>
         </FavoritesPopover>
@@ -99,7 +99,7 @@ export function TabBar() {
               active ? "text-foreground" : "text-muted-foreground",
             )}
           >
-            <Icon className="size-5" />
+            <Icon className="size-6" />
             {label}
           </Link>
         );

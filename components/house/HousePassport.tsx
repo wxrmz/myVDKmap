@@ -2,7 +2,7 @@
 
 // House passport (§5.4): header, health, sections, actions.
 import Link from "next/link";
-import { ChevronRight, ExternalLink, Receipt, TriangleAlert } from "lucide-react";
+import { ChevronRight, ExternalLink, ReceiptRussianRuble, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMapScene } from "@/components/map/MapContext";
 import { IssueStatusBadge } from "@/components/panel/badges";
@@ -243,7 +243,7 @@ export function HousePassport({ passport }: { passport: BuildingPassportDTO }) {
         </Button>
         <Button asChild variant="outline" className="h-11 rounded-xl">
           <Link href={`/bill${q}`} prefetch>
-            <Receipt /> Разобрать квитанцию
+            <ReceiptRussianRuble /> Разобрать квитанцию
           </Link>
         </Button>
       </div>

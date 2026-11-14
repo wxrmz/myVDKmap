@@ -46,7 +46,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       onPointerDown={(e) => e.button === 0 && e.isPrimary && toggle()}
       // Keyboard (Enter / Space) has no pointerdown; its click comes with detail 0.
       onClick={(e) => e.detail === 0 && toggle()}
-      className={cn("relative size-11 rounded-full [&_svg:not([class*='size-'])]:size-5", className)}
+      className={cn("relative size-11 rounded-full [&_svg:not([class*='size-'])]:size-6", className)}
     >
       {mounted && (
         <AnimatePresence initial={false}>

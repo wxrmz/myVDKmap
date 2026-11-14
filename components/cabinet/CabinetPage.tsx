@@ -3,7 +3,7 @@
 // Cabinet /me (§5.8): login when signed out; profile and sections (list on the right, chips on phones) when signed in.
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gauge, Heart, LogOut, Receipt, Settings, TriangleAlert, Users } from "lucide-react";
+import { Gauge, Heart, LogOut, ReceiptRussianRuble, Settings, TriangleAlert, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FlowHeader } from "@/components/flows/FlowHeader";
@@ -43,7 +43,7 @@ function SignedIn({ user }: { user: PublicUser }) {
   const sections: { id: Tab; label: string; Icon: typeof Heart; count?: number }[] = [
     { id: "houses", label: "Мои дома", Icon: Heart, count: c.houses.length },
     { id: "issues", label: "Обращения", Icon: TriangleAlert, count: c.issues.length + (c.draft ? 1 : 0) },
-    { id: "bills", label: "Квитанции", Icon: Receipt, count: c.bills.length },
+    { id: "bills", label: "Квитанции", Icon: ReceiptRussianRuble, count: c.bills.length },
     { id: "meters", label: "Счётчики", Icon: Gauge, count: c.meters.length },
     { id: "community", label: "Соседи", Icon: Users, count: c.posts.length },
     { id: "settings", label: "Настройки", Icon: Settings },
