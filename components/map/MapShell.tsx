@@ -2,14 +2,14 @@
 
 // App shell (§5.1): rail / tab bar, the map beside the rail, the panel with search on map pages,
 // flow pages (/report, /bill, /changes, /me) as an overlay over the map.
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { useFontScale } from "@/components/cabinet/shared";
 import { MapView } from "@/components/map/MapView";
 import { PanelSheet } from "@/components/panel/PanelSheet";
 import { useSession } from "@/lib/session";
 import { useMap } from "./MapContext";
-import { isMapPath, Rail, TabBar } from "./Rail";
+import { isMapPath, NAV_VT, pageShown, Rail, TabBar } from "./Rail";
 
 const PHONE = "(max-width: 767.98px)";
 const subscribePhone = (cb: () => void) => {
@@ -26,12 +26,17 @@ export function MapShell({ children }: { children: React.ReactNode }) {
   const mobile = useSyncExternalStore(subscribePhone, () => matchMedia(PHONE).matches, () => false);
   useFontScale();
   useSession(); // loads the session once, so a signed-in cabinet syncs on any page
-  // The card stays; a new section fades in instead of replacing the old one in a single frame.
-  const page = (
-    <div key={pathname} className="animate-in fade-in duration-200 ease-out motion-reduce:animate-none">
-      {children}
-    </div>
-  );
+  // The card stays and a new section fades in. Rail links cross-fade the card in a View Transition instead.
+  const pageRef = useRef<HTMLDivElement>(null);
+  const shown = useRef(pathname);
+  useLayoutEffect(() => {
+    if (shown.current === pathname) return;
+    shown.current = pathname;
+    pageShown();
+    if (document.documentElement.hasAttribute(NAV_VT) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    pageRef.current?.animate({ opacity: [0, 1] }, { duration: 200, easing: "ease-out" });
+  }, [pathname]);
+  const page = <div ref={pageRef}>{children}</div>;
   return (
     <>
       <Rail />

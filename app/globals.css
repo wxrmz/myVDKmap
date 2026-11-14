@@ -156,6 +156,27 @@ details[open]::details-content {
   mix-blend-mode: normal;
 }
 
+/* Rail links (Rail.tsx): only the card cross-fades; the rest of the page swaps at once. */
+[data-nav-vt] section:is([aria-label="Раздел"], [aria-label="Панель"]) {
+  view-transition-name: card;
+}
+::view-transition-group(card) {
+  animation-duration: 220ms;
+  animation-timing-function: ease-out;
+}
+::view-transition-old(card) {
+  animation: 140ms ease-out both nav-fade-out;
+}
+::view-transition-new(card) {
+  animation: 220ms ease-out both nav-fade-in;
+}
+@keyframes nav-fade-out {
+  to { opacity: 0; }
+}
+@keyframes nav-fade-in {
+  from { opacity: 0; }
+}
+
 /* Splash (§5.10): CSS so it animates before JS loads. */
 .splash-fill {
   transform-origin: left;

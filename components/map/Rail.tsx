@@ -18,6 +18,37 @@ const FLOWS = [
 ];
 const CABINET = { href: "/me", label: "Кабинет", Icon: CircleUser };
 
+/** Set on <html> while a rail link cross-fades the card (styles in globals.css). */
+export const NAV_VT = "data-nav-vt";
+let showPage: (() => void) | null = null;
+/** MapShell calls this once the new section is in the DOM, so the transition can take its picture. */
+export function pageShown() {
+  showPage?.();
+  showPage = null;
+}
+
+/** Click handler for a rail / tab bar link: old and new sections cross-fade in a View Transition. */
+function useCrossFade(href: string) {
+  const router = useRouter();
+  return (e: React.MouseEvent) => {
+    const plain = e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+    if (!plain || !document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (location.pathname === href) return;
+    e.preventDefault();
+    const root = document.documentElement;
+    root.setAttribute(NAV_VT, "");
+    const t = document.startViewTransition(
+      () =>
+        new Promise<void>((resolve) => {
+          showPage = resolve;
+          setTimeout(resolve, 600); // a slow page swaps without the picture rather than freezing the screen
+          router.push(href);
+        }),
+    );
+    t.finished.finally(() => root.removeAttribute(NAV_VT));
+  };
+}
+
 export const isMapPath = (p: string) => p === "/" || p.startsWith("/d/") || p.startsWith("/house/") || p.startsWith("/issue/");
 const isActive = (href: string, p: string) => (href === "/" ? isMapPath(p) : p === href || p.startsWith(`${href}/`));
 
@@ -29,8 +60,9 @@ const itemClass = (active: boolean) =>
 
 function RailLink({ href, label, Icon }: typeof MAP) {
   const active = isActive(href, usePathname());
+  const onClick = useCrossFade(href);
   return (
-    <Link href={href} prefetch className={itemClass(active)} aria-current={active ? "page" : undefined}>
+    <Link href={href} prefetch onClick={onClick} className={itemClass(active)} aria-current={active ? "page" : undefined}>
       <Icon className="size-6" />
       {label}
     </Link>
@@ -79,6 +111,25 @@ export function Rail() {
   );
 }
 
+function TabLink({ href, label, Icon, active }: typeof MAP & { active: boolean }) {
+  const onClick = useCrossFade(href);
+  return (
+    <Link
+      href={href}
+      prefetch
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
+        active ? "text-foreground" : "text-muted-foreground",
+      )}
+    >
+      <Icon className="size-6" />
+      {label}
+    </Link>
+  );
+}
+
 export function TabBar() {
   const pathname = usePathname();
   return (
@@ -86,24 +137,9 @@ export function TabBar() {
       aria-label="Разделы"
       className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      {[MAP, ...FLOWS, CABINET].map(({ href, label, Icon }) => {
-        const active = isActive(href, pathname);
-        return (
-          <Link
-            key={href}
-            href={href}
-            prefetch
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
-              active ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
-            <Icon className="size-6" />
-            {label}
-          </Link>
-        );
-      })}
+      {[MAP, ...FLOWS, CABINET].map((item) => (
+        <TabLink key={item.href} {...item} active={isActive(item.href, pathname)} />
+      ))}
     </nav>
   );
 }
