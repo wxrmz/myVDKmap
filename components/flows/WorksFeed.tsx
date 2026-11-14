@@ -43,7 +43,9 @@ export function WorksFeed({
   const suggestions = q ? allStreets.filter((s) => norm(s).includes(q) && norm(s) !== q).slice(0, MAX_CHIPS) : [];
 
   const mine = (w: CityWorkDTO) => Boolean(buildingId && w.buildings.some((b) => b.id === buildingId));
-  const ordered = [...shown].sort((a, b) => Number(mine(b)) - Number(mine(a)));
+  // Your house first, then works from the news (newest first), then the rest by start date.
+  const fresh = (w: CityWorkDTO) => (w.sourceUrl ? Date.parse(w.startDate) : 0);
+  const ordered = [...shown].sort((a, b) => Number(mine(b)) - Number(mine(a)) || fresh(b) - fresh(a));
   const today = vlDay(now);
   const current = ordered.filter((w) => vlDay(w.startDate) <= today && !isDone(w, now));
   const soon = ordered.filter((w) => vlDay(w.startDate) > today);
@@ -120,6 +122,7 @@ function WorkCard({ work: w, mine, active }: { work: CityWorkDTO; mine: boolean;
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="rounded-full bg-work/20 px-2.5 py-0.5 font-medium">{WORK_KIND_LABELS[w.kind]}</span>
         {mine && <span className="rounded-full px-2.5 py-0.5 font-medium ring-1 ring-work">Касается вашего дома</span>}
+        {w.sourceUrl && <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium text-muted-foreground">Из новостей</span>}
       </div>
       <h3 className="text-base font-semibold">{w.title}</h3>
       <p className="text-sm text-muted-foreground">{dates(w)}</p>

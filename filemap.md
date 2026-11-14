@@ -55,7 +55,7 @@
 - `components/flows/BillParts.tsx` — `Share` (a line's share bar), `Insights`, `CheckList`: shared by the analysis and the cabinet
 - `components/flows/BillChart.tsx` — recharts bar chart of monthly totals, its own chunk
 - `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis, one tab per receipt kind (коммуналка / капремонт / электроэнергия / другая; demo only for коммуналка), compared with the resident's own saved receipts; numbers, lines with shares, checks, monthly chart (`BillChart.tsx`, loaded lazily), changes, one button saves every analysed tab to the cabinet
-- `components/flows/WorksFeed.tsx` — §5.7 feed: groups, `isDone`, `?building=` first, `?work=` highlight/scroll/open group; a work from the news links to its article
+- `components/flows/WorksFeed.tsx` — §5.7 feed: groups, `isDone`, `?building=` first, `?work=` highlight/scroll/open group; a work from the news has an «Из новостей» badge, comes first in its group (newest first) and links to its article
 - `components/flows/WorksSearch.tsx` — street field, street chips, «Найдено работ: N»
 - `components/flows/DocumentParser.tsx` — «Разобрать свой документ» via `/api/ai/document`
 - `components/cabinet/CabinetPage.tsx` — /me: login or profile + sections (right sticky list `layoutId="cabinet-tab"`, chips on phones)
