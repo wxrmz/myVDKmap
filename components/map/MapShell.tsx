@@ -26,14 +26,20 @@ export function MapShell({ children }: { children: React.ReactNode }) {
   const mobile = useSyncExternalStore(subscribePhone, () => matchMedia(PHONE).matches, () => false);
   useFontScale();
   useSession(); // loads the session once, so a signed-in cabinet syncs on any page
+  // The card stays; a new section fades in instead of replacing the old one in a single frame.
+  const page = (
+    <div key={pathname} className="animate-in fade-in duration-200 ease-out motion-reduce:animate-none">
+      {children}
+    </div>
+  );
   return (
     <>
       <Rail />
       <MapView className="bottom-16 md:bottom-0 md:left-[88px]" />
       {isMapPath(pathname) ? (
-        <PanelSheet mobile={mobile}>{children}</PanelSheet>
+        <PanelSheet mobile={mobile}>{page}</PanelSheet>
       ) : (
-        <FlowOverlay mobile={mobile}>{children}</FlowOverlay>
+        <FlowOverlay mobile={mobile}>{page}</FlowOverlay>
       )}
       <TabBar />
     </>
