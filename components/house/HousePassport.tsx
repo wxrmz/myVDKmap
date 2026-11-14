@@ -64,16 +64,6 @@ export function HousePassport({ passport }: { passport: BuildingPassportDTO }) {
       <header className="relative flex flex-col gap-3 pr-8">
         {/* One level up: the house's ЖК, else its district. */}
         <CloseButton href={crumbs.at(-1)?.href ?? "/"} label="Закрыть дом" />
-        <nav aria-label="Где дом" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-          {crumbs.map((c, i) => (
-            <span key={c.href} className="flex items-center gap-1">
-              {i > 0 && <ChevronRight className="size-3.5" />}
-              <Link href={c.href} prefetch className="hover:text-foreground">
-                {c.label}
-              </Link>
-            </span>
-          ))}
-        </nav>
         <h1 className="text-2xl font-semibold tracking-tight">{b.address}</h1>
         <div className="flex items-center gap-2">
           <SaveHouseButton buildingId={b.id} />

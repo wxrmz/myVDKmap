@@ -1,16 +1,16 @@
 "use client";
 
 // Panel of the map pages (§5.1): desktop — 384 px column (search width) over the map under the search;
-// phone — bottom sheet with 3 snap points (112 px, 224 px, 64 px from the top), dragged by the handle.
+// phone — bottom sheet with 3 snap points (100 px, 200 px, 64 px from the top), dragged by the handle.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { useMap } from "@/components/map/MapContext";
 import { MapControls } from "@/components/map/MapControls";
 
 const TAB_BAR = 48; // h-12 of TabBar (components/map/Rail.tsx)
-const COLLAPSED = 112;
+const COLLAPSED = 100;
 // Opened: the title and the first block (district figures, complex facts) over the map.
-const OPENED = 224;
+const OPENED = 200;
 const TOP_GAP = 64;
 // Room for the search and chips over the phone map, so the camera keeps targets visible.
 const MOBILE_TOP = 120;
