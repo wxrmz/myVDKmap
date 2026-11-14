@@ -70,9 +70,9 @@ function BottomSheet({ children }: { children: React.ReactNode }) {
 
   useEffect(() => subscribeResize(() => setViewport(innerHeight)), []);
   useEffect(() => {
-    // A new viewport or level moves the sheet to its snap; index changes animate through snapTo.
+    // A new viewport or level moves the sheet to its snap.
     animate(height, snaps[index], { type: "spring", stiffness: 420, damping: 42 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `index` is left out: snapTo animates its own changes, a second spring would fight it
   }, [snaps, height]);
 
   // Collapsed at city level; opened to half when a deeper page appears.

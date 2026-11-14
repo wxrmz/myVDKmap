@@ -14,6 +14,7 @@ import { cn, vlDay } from "@/lib/utils";
 import type { ThemeSwitchDetail } from "@/components/ThemeToggle";
 import { useMap, type MapLayers, type MapLevel, type MapScene } from "./MapContext";
 import { MapTip, setTip, TIP_WIDTH, type Tip, type TipTarget } from "./MapTip";
+import { isPhone } from "./navMotion";
 import { clusterByDistance, insideDistrict, type DistrictShape } from "./shapes";
 
 const KEY = process.env.NEXT_PUBLIC_2GIS_KEY ?? "";
@@ -21,6 +22,8 @@ const STYLES = { light: "c080bb6a-8134-4993-93a1-5b4d8c36a59b", dark: "e05ac437-
 type Theme = keyof typeof STYLES;
 const START_CENTER = [132.023, 43.196];
 const START_ZOOM = 11.2;
+/** A phone is too narrow for the city at START_ZOOM: farther out and shifted south-west, all five districts fit. */
+const startView = (): [number[], number] => (isPhone() ? [[131.977, 43.16], 10.75] : [START_CENTER, START_ZOOM]);
 const PITCH: Record<MapLevel, number> = { city: 0, district: 35, complex: 55, house: 60 };
 // 2GIS draws buildings in 3D from about zoom 17; a complex opens right at that point.
 const ZOOM = { complex: 17, house: 17.5 };
@@ -282,8 +285,8 @@ export function MapView({ className }: { className?: string }) {
         const base: Theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
         const view = {
           key: KEY,
-          center: START_CENTER,
-          zoom: START_ZOOM,
+          center: startView()[0],
+          zoom: startView()[1],
           minZoom: 8,
           maxZoom: 18,
           // 2GIS caps pitch at 45° by default; §5.2 needs 55° for complexes and 60° for houses.
@@ -410,7 +413,7 @@ export function MapView({ className }: { className?: string }) {
     if (!api) return;
     const { map } = api;
     const pitch = PITCH[scene.level];
-    if (scene.level === "city") return fly(map, START_CENTER, START_ZOOM, pitch);
+    if (scene.level === "city") return fly(map, ...startView(), pitch);
     if (scene.level === "district") {
       const shape = scene.districtId ? latest.current.shapes[scene.districtId] : undefined;
       if (!shape) return;
