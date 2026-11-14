@@ -3,6 +3,7 @@
 // «Что меняется в городе» (§5.7): street search, groups now / soon / done, `?building=` first, `?work=` highlighted.
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { plural } from "@/lib/health";
 import { houseHref } from "@/lib/nav";
 import { WORK_KIND_LABELS, type CityWorkDTO } from "@/lib/types";
 import { cn, dayLabel, norm, vlDay } from "@/lib/utils";
@@ -14,6 +15,19 @@ const SHOWN_HOUSES = 4;
 /** Done from the day after `endDate`, by the Vladivostok calendar. */
 export function isDone(w: Pick<CityWorkDTO, "endDate">, now: number) {
   return Boolean(w.endDate) && vlDay(w.endDate!) < vlDay(now);
+}
+
+const byAddress = new Intl.Collator("ru", { numeric: true }).compare;
+/** Houses grouped by street, streets and numbers in order: «ул. Выселковая» → 3Г, 8А, 21/1. */
+function byStreet(houses: CityWorkDTO["buildings"]) {
+  const streets = new Map<string, { id: string; number: string }[]>();
+  for (const b of [...houses].sort((x, y) => byAddress(x.address, y.address))) {
+    const comma = b.address.indexOf(",");
+    const street = comma < 0 ? b.address : b.address.slice(0, comma);
+    const number = comma < 0 ? b.address : b.address.slice(comma + 1).trim();
+    streets.set(street, [...(streets.get(street) ?? []), { id: b.id, number }]);
+  }
+  return [...streets];
 }
 
 const dates = (w: CityWorkDTO) => (w.endDate ? `${dayLabel(w.startDate)} — ${dayLabel(w.endDate)}` : `с ${dayLabel(w.startDate)}, срок не указан`);
@@ -105,8 +119,12 @@ function Group({ title, children }: { title: React.ReactNode; children: React.Re
   );
 }
 
+const houseLink = "font-medium underline-offset-4 hover:underline";
+
 function WorkCard({ work: w, mine, active }: { work: CityWorkDTO; mine: boolean; active: boolean }) {
   const ref = useRef<HTMLLIElement>(null);
+  const [allHouses, setAllHouses] = useState(false);
+  const more = w.buildings.length - SHOWN_HOUSES;
   useEffect(() => {
     if (!active) return;
     // after a frame: the group may have just opened
@@ -127,19 +145,49 @@ function WorkCard({ work: w, mine, active }: { work: CityWorkDTO; mine: boolean;
       <h3 className="text-base font-semibold">{w.title}</h3>
       <p className="text-sm text-muted-foreground">{dates(w)}</p>
       <p className="text-sm">{w.plainSummary}</p>
-      {w.buildings.length > 0 && (
+      {w.buildings.length > 0 && !allHouses && (
         <p className="text-sm">
           <span className="text-muted-foreground">Затронуто домов: {w.buildings.length}. </span>
           {w.buildings.slice(0, SHOWN_HOUSES).map((b, i) => (
             <span key={b.id}>
               {i > 0 && ", "}
-              <Link href={houseHref(b.id)} prefetch={false} className="font-medium underline-offset-4 hover:underline">
+              <Link href={houseHref(b.id)} prefetch={false} className={houseLink}>
                 {b.address}
               </Link>
             </span>
           ))}
-          {w.buildings.length > SHOWN_HOUSES && " и другие"}
+          {more > 0 && (
+            <>
+              {" "}
+              <button type="button" onClick={() => setAllHouses(true)} className="font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                и ещё {more} {plural(more, ["дом", "дома", "домов"])}
+              </button>
+            </>
+          )}
         </p>
+      )}
+      {allHouses && (
+        <div className="flex flex-col gap-1.5 text-sm">
+          <span className="text-muted-foreground">Затронуто домов: {w.buildings.length}</span>
+          <ul className="flex flex-col gap-1">
+            {byStreet(w.buildings).map(([street, houses]) => (
+              <li key={street}>
+                <span className="text-muted-foreground">{street}: </span>
+                {houses.map((h, i) => (
+                  <span key={h.id}>
+                    {i > 0 && ", "}
+                    <Link href={houseHref(h.id)} prefetch={false} className={houseLink}>
+                      {h.number}
+                    </Link>
+                  </span>
+                ))}
+              </li>
+            ))}
+          </ul>
+          <button type="button" onClick={() => setAllHouses(false)} className="self-start font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">
+            Свернуть
+          </button>
+        </div>
       )}
       <details className="text-sm">
         <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">Исходный текст</summary>

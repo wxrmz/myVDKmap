@@ -5,7 +5,7 @@ import { BILL_ITEM_GLOSSARY, DEMO_BILLS, DEMO_BUILDING_ID, TARIFFS, periodLabel 
 import { DEMO_DOCUMENTS } from "@/lib/fixtures/documents";
 import { plural } from "@/lib/health";
 import { getAuthorities, getDistrict, getDistrictStats } from "@/lib/queries";
-import { ensureOsmBuilding, getWorkStreets, streetPattern, streetPoints } from "@/lib/search";
+import { getWorkStreets, streetPattern } from "@/lib/search";
 import { ISSUE_CATEGORY_LABELS, type BillItem, type BillKind, type IssueCategory, type WorkKind } from "@/lib/types";
 import { norm, vlDay } from "@/lib/utils";
 import type { BillInput, BillOutput, BillRaw, ClassifyInput, ClassifyOutput, DigestOutput, DocSummary } from "./schemas";
@@ -325,7 +325,8 @@ const demoDocument = (text: string) => DEMO_DOCUMENTS.find((d) => norm(d.sourceT
  */
 function parseHouseNumbers(s: string): { numbers: string[]; length: number } {
   const t = norm(s);
-  const item = /(?:с\s+)?(\d{1,3})([а-я]?)(?:\s*(?:[-–—]|по)\s*(\d{1,3})[а-я]?)?(?![\p{L}\d:.])(?!\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря))/uy;
+  // «1-й Лесной» after a street is the next street, not house 1.
+  const item = /(?:с\s+)?(\d{1,3})(?!\d)(?![-–][а-я])([а-я]?)(?:\s*(?:[-–—]|по)\s*(\d{1,3})[а-я]?)?(?![\p{L}\d:.])(?!\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря))/uy;
   const sep = /\s*(?:,\s*(?:и\s+)?|\s+и\s+)(?:(?:д\.|дом(?:а|ов)?)\s*)?/uy;
   let i = /^[\s,]*(?:(?:д\.|дом(?:а|ов)?|№)\s*)?/u.exec(t)![0].length;
   const numbers: string[] = [];
@@ -348,30 +349,40 @@ function parseHouseNumbers(s: string): { numbers: string[]; length: number } {
 export const houseNumbers = (s: string) => parseHouseNumbers(s).numbers;
 
 /** Streets of the city named in the text, each with the house numbers written right after its mentions. */
-function streetRefs(text: string) {
+export function streetRefs(text: string) {
   const t = norm(text);
   const found = getWorkStreets([{ id: "doc", title: "", plainSummary: "", sourceText: text, buildings: [] }]).doc ?? [];
   // «Зелёный Бульвар» in the text also matches «пер. Зелёный»: a street whose name is part of another found one is dropped.
   const name = (street: string) => norm(street.replace(/^\S+\.\s*/, "")).split(/\s+/);
-  const streets = found.filter((a) => !found.some((b) => name(b).length > name(a).length && name(a).every((w) => name(b).includes(w))));
-  return streets.flatMap((street) => {
-    const re = streetPattern(street)!;
-    // Street names are capitalised: «ул. Связи» counts, «в связи с» does not.
-    const mentions = [...t.matchAll(new RegExp(re.source, "gu"))].filter((m) => /\p{Lu}/u.test(text[m.index]));
+  const named = found
+    .filter((a) => !found.some((b) => name(b).length > name(a).length && name(a).every((w) => name(b).includes(w))))
+    .map((street) => {
+      const re = streetPattern(street)!;
+      // Street names are capitalised: «ул. Связи» counts, «в связи с» does not.
+      const spans = [...t.matchAll(new RegExp(re.source, "gu"))]
+        .filter((m) => /\p{Lu}/u.test(text.slice(m.index, m.index + m[0].length)))
+        .map((m): [number, number] => [m.index, m.index + m[0].length]);
+      return { street, re, spans };
+    });
+  // A mention inside a longer one of another street is that street's: «Лесной» in «1-й Лесной» is not «пер. Лесной».
+  const inside = ([a, b]: [number, number], self: (typeof named)[number]) =>
+    named.some((o) => o !== self && o.spans.some(([c, d]) => c <= a && b <= d && d - c > b - a));
+  return named.flatMap((n) => {
+    const mentions = n.spans.filter((span) => !inside(span, n));
     if (!mentions.length) return [];
     const numbers: string[] = [];
     let raw = "";
-    for (const m of mentions) {
-      const after = text.slice(m.index + m[0].length);
+    for (const [, end] of mentions) {
+      const after = text.slice(end);
       const p = parseHouseNumbers(after);
       numbers.push(...p.numbers);
       if (p.numbers.length && !raw) raw = after.slice(0, p.length).replace(/^[\s,]+/, "");
     }
-    return [{ street, re, numbers, raw }];
+    return [{ street: n.street, re: n.re, numbers, raw }];
   });
 }
 
-const houseMatches = (numbers: string[], houseNumber: string) => {
+export const houseMatches = (numbers: string[], houseNumber: string) => {
   const token = /^\d+[а-я]?/.exec(norm(houseNumber).trim())?.[0];
   return !!token && numbers.some((n) => n === token || n === /^\d+/.exec(token)![0]);
 };
@@ -396,30 +407,6 @@ export async function bindBuildings(text: string): Promise<{ id: string; address
     const number = comma < 0 ? "" : b.address.slice(comma + 1);
     return refs.some((r) => r.re.test(street) && (!r.numbers.length || houseMatches(r.numbers, number)));
   });
-}
-
-/**
- * Houses a news text names and the point of the work: houses in the DB as `bindBuildings` finds them, plus houses
- * with numbers in the text that only OSM knows (they get a passport). Without any house the point is the middle of
- * the first named street; null when the text names no street of the city.
- */
-export async function newsHouses(text: string): Promise<{ ids: string[]; lat: number; lng: number } | null> {
-  const refs = streetRefs(text);
-  const ids = new Set((await bindBuildings(text)).map((b) => b.id));
-  for (const r of refs)
-    for (const p of r.numbers.length ? streetPoints(r.street) : [])
-      if (houseMatches(r.numbers, p[2])) {
-        const id = await ensureOsmBuilding(p[0]); // one at a time: two creations of one address would collide
-        if (id) ids.add(id);
-      }
-  const points = ids.size
-    ? (await prisma.building.findMany({ where: { id: { in: [...ids] } }, select: { lat: true, lng: true } })).map((b) => [b.lat, b.lng])
-    : (refs.map((r) => streetPoints(r.street)).find((ps) => ps.length) ?? []).map((p) => [p[3], p[4]]);
-  if (!points.length) return null;
-  const mid = [0, 1].map((i) => points.reduce((s, p) => s + p[i], 0) / points.length);
-  // The house nearest the mean: the mean of a bent street can fall off it.
-  const [lat, lng] = ids.size ? mid : points.reduce((a, b) => (Math.hypot(a[0] - mid[0], a[1] - mid[1]) <= Math.hypot(b[0] - mid[0], b[1] - mid[1]) ? a : b));
-  return { ids: [...ids], lat, lng };
 }
 
 const KIND_RULES: [WorkKind, RegExp][] = [

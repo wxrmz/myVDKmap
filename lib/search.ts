@@ -149,11 +149,8 @@ export async function searchAll(q: string, limit = 400): Promise<SearchResult[]>
   return out;
 }
 
-/** OSM address points on a street, the street spelled as in data/osm-addresses.json («ул. Крыгина»). */
-export const streetPoints = (street: string) => {
-  const key = norm(street);
-  return [...addressPoints().byId.values()].filter((p) => norm(p[1]) === key);
-};
+/** All OSM address points of the city. */
+export const allAddressPoints = () => addressPoints().byId.values();
 
 // --- lazy passport for an OSM address point (§6.3) ---
 export async function ensureOsmBuilding(osmId: number): Promise<string | null> {
@@ -253,8 +250,10 @@ export function streetPattern(street: string): RegExp | null {
     : /(?:ий|ый|ой)$/.test(main)
       ? `${main.slice(0, -2)}(?:ий|ый|ой|ого|ому|ом)`
       : main;
+  // «ул. 1-я Лесная» needs its number: «1-й Лесной» is it, «3-я Лесная» is not.
+  const ordinal = /(?:^|\s)(\d+)-[а-я]{1,3}(?=\s)/u.exec(norm(street))?.[1];
   // \b is ASCII-only, so word edges are spelled out for Cyrillic.
-  return new RegExp(`(?<![\\p{L}\\d])${body}(?![\\p{L}\\d])`, "u");
+  return new RegExp(`(?<![\\p{L}\\d])${ordinal ? `${ordinal}-[а-я]{1,3}\\s+` : ""}${body}(?![\\p{L}\\d])`, "u");
 }
 
 let streetPatterns: { street: string; re: RegExp }[] | null = null;

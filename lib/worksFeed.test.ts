@@ -1,6 +1,6 @@
 // Self-check: npx tsx lib/worksFeed.test.ts
 import assert from "node:assert/strict";
-import { isWorkNews, parseFeed, periodLabel, workDates } from "./worksFeed";
+import { isWorkNews, parseFeed, periodLabel, workDates, workPoint } from "./worksFeed";
 
 const xml = `<rss><channel><title>Новости</title>
 <item><title>Проезд по улице Крыгина частично перекрыли на 14 и 15 ноября </title>
@@ -44,5 +44,22 @@ assert.equal(periodLabel(at("2026-11-14"), at("2026-11-15")), "14–15 нояб�
 assert.equal(periodLabel(at("2026-11-14"), at("2026-12-01")), "14 ноября — 1 декабря");
 assert.equal(periodLabel(at("2026-11-13"), at("2026-11-13")), "13 ноября");
 assert.equal(periodLabel(at("2026-11-13"), null), "с 13 ноября");
+
+// Places: ~0.0009° of latitude is 100 m.
+const along = (lat: number, lng: number, n: number, dLat: number, dLng: number) =>
+  Array.from({ length: n }, (_, i): [number, number] => [lat + i * dLat, lng + i * dLng]);
+const ns = along(43.1, 131.9, 11, 0.0009, 0); // 1 km north–south
+const ew = along(43.1045, 131.895, 11, 0, 0.00124); // 1 km west–east, crossing it in the middle
+const crossing = workPoint([ns, ew])!;
+assert.ok(Math.abs(crossing.at[0] - 43.1045) < 0.0005 && Math.abs(crossing.at[1] - 131.9) < 0.0007, "two streets meet at their crossing");
+assert.ok(crossing.gap < 60);
+assert.equal(workPoint([ns, along(43.2, 132.0, 5, 0.0009, 0)]), null, "streets far apart pin no place");
+const parallel = along(43.1, 131.91, 11, 0.0009, 0); // 800 m east of «ns»: «от … до …»
+const between = workPoint([ns, parallel])!;
+assert.ok(Math.abs(between.at[1] - 131.905) < 0.0001, "two streets 800 m apart: the place between them");
+assert.ok(Math.abs(between.gap - 405) < 10, "houses are searched half the gap wider");
+assert.deepEqual(workPoint([[], ns.slice(0, 5)]), { at: ns[2], gap: 0 }, "a street without points is skipped; a short one gives its middle house");
+assert.equal(workPoint([along(43.1, 131.9, 30, 0.0009, 0)]), null, "a 2.6 km street pins no place");
+assert.equal(workPoint([]), null);
 
 console.log("worksFeed: ok");

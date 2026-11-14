@@ -7,13 +7,13 @@ import { prisma } from "@/lib/db";
 import { DEMO_BILLS, DEMO_BUILDING_ID } from "@/lib/fixtures/bills";
 import { DEMO_DOCUMENTS } from "@/lib/fixtures/documents";
 import { norm } from "@/lib/utils";
+import { pickHouses, splitAddress, type HouseSpot } from "@/lib/worksFeed";
 import { WORK_KINDS, type IssueCategory, type IssueStatus, type Severity, type WorkKind } from "@/lib/types";
 
 const SALT = "myVDKmap-seed-v1";
 const NOW = Date.parse("2026-11-12T12:00:00Z"); // fixed "today" so createdAt is reproducible
 const DAY = 86_400_000;
 const BUILDINGS_PER_MICRODISTRICT = 16;
-const HOUSES_PER_WORK = 20;
 
 // --- PRNG: mulberry32 seeded with FNV-1a of the salt ---
 function fnv1a(s: string) {
@@ -210,60 +210,50 @@ for (const m of microdistricts) {
   }
 }
 
-// --- city works: real houses on the streets named in each work, nearest to the work point ---
-const streetOf = (address: string) => norm(address.split(",")[0]);
-const wordRe = (w: string) => new RegExp(`(^|[^а-яa-z0-9])${norm(w)}($|[^а-яa-z0-9])`);
-const seededIds = new Set(buildings.map((b) => b.id));
-const seededAddresses = new Set(buildings.map((b) => norm(b.address)));
+// --- city works: houses picked like the news feed does (lib/worksFeed.ts), around each work's point ---
+// Spots in order of preference for one address: a house seeded above, an OSM building (with facts), an OSM address point.
+type WorkSpot = HouseSpot & { row?: BuildingRow; osm?: OsmBuilding };
+const workSpots: WorkSpot[] = [
+  ...buildings.map((row) => ({ ...splitAddress(row.address), lat: row.lat, lng: row.lng, row })),
+  ...osmBuildings
+    .filter((b) => b.street && b.housenumber && !usedOsm.has(b.osmId))
+    .map((osm) => ({ street: osm.street!, number: osm.housenumber!, lat: osm.lat, lng: osm.lng, osm })),
+  ...addressPoints.map(([osmId, street, housenumber, lat, lng, floors]) => ({
+    street,
+    number: housenumber,
+    lat,
+    lng,
+    osm: { osmId, street, housenumber, lat, lng, floors, yearBuilt: null, apartments: null },
+  })),
+];
+/** The passport row of a picked spot: the seeded house, or a new one from OSM (shared by works that pick it). */
+const workRow = (s: WorkSpot): BuildingRow | null => {
+  if (s.row) return s.row;
+  const h = s.osm!;
+  const districtId = districtOf(h.lat, h.lng);
+  const m = districtId && nearestMicro(h.lat, h.lng, districtId);
+  if (!m) return null;
+  s.row = {
+    id: `osm-${h.osmId}`,
+    address: `${h.street}, ${h.housenumber}`,
+    lat: h.lat,
+    lng: h.lng,
+    floors: h.floors,
+    yearBuilt: h.yearBuilt,
+    wallMaterial: h.wallMaterial ?? null,
+    apartments: h.apartments,
+    complexId: null,
+    microdistrictId: m.id,
+    managementCompanyId: null,
+  };
+  buildings.push(s.row);
+  return s.row;
+};
 
 const works = DEMO_DOCUMENTS.map((d) => {
-  const res = d.match.streets.map(wordRe);
-  const inScope = (b: BuildingRow) => !d.match.microdistrictIds || d.match.microdistrictIds.includes(b.microdistrictId);
-  const candidates = new Map<string, BuildingRow>();
-  for (const b of buildings) if (inScope(b) && res.some((re) => re.test(streetOf(b.address)))) candidates.set(b.id, b);
-  for (const re of res) {
-    const houses = osmBuildings.filter((b) => b.street && b.housenumber && re.test(norm(b.street)));
-    // A street with no OSM building gets its OSM address points instead (fewer facts: floors at most).
-    const source: OsmBuilding[] = houses.length
-      ? houses
-      : addressPoints
-          .filter((p) => re.test(norm(p[1])))
-          .map(([osmId, street, housenumber, lat, lng, floors]) => ({ osmId, street, housenumber, lat, lng, floors, yearBuilt: null, apartments: null }));
-    for (const h of source) {
-      const id = `osm-${h.osmId}`;
-      const address = `${h.street}, ${h.housenumber}`;
-      if (usedOsm.has(h.osmId) || seededIds.has(id) || candidates.has(id) || seededAddresses.has(norm(address))) continue;
-      const districtId = districtOf(h.lat, h.lng);
-      const m = districtId && nearestMicro(h.lat, h.lng, districtId);
-      if (!m) continue;
-      const row: BuildingRow = {
-        id,
-        address,
-        lat: h.lat,
-        lng: h.lng,
-        floors: h.floors,
-        yearBuilt: h.yearBuilt,
-        wallMaterial: h.wallMaterial ?? null,
-        apartments: h.apartments,
-        complexId: null,
-        microdistrictId: m.id,
-        managementCompanyId: null,
-      };
-      if (inScope(row)) candidates.set(id, row);
-    }
-  }
-  const k = Math.cos((d.lat * Math.PI) / 180);
-  const dist = (b: BuildingRow) => (b.lat - d.lat) ** 2 + ((b.lng - d.lng) * k) ** 2;
-  const chosen = [...candidates.values()].sort((a, b) => dist(a) - dist(b) || (a.id < b.id ? -1 : 1)).slice(0, HOUSES_PER_WORK);
-  for (const b of chosen) {
-    if (seededIds.has(b.id)) continue;
-    seededIds.add(b.id);
-    seededAddresses.add(norm(b.address));
-    buildings.push(b);
-  }
-  const ids = new Set([...chosen.map((b) => b.id), ...(d.match.buildingIds ?? []).filter((id) => seededIds.has(id))]);
   const kind = d.summary.kind as WorkKind;
   if (!WORK_KINDS.includes(kind)) throw new Error(`Unknown work kind ${d.summary.kind} in ${d.id}`);
+  const ids = new Set(pickHouses(d.sourceText, kind, workSpots, [d.lat, d.lng]).houses.flatMap((s) => workRow(s)?.id ?? []));
   if (!ids.size) throw new Error(`Work ${d.id} affects no houses`);
   return {
     row: {
@@ -423,9 +413,10 @@ for (const h of HOTSPOTS) {
 }
 for (let i = 0; i < BACKGROUND_COUNT; i++) addIssue(pick(pool), pick(BACKGROUND));
 
-const workRows = () => [
+const allImpacts = works.flatMap((w) => w.buildingIds.map((buildingId) => ({ workId: w.row.id, buildingId })));
+const workRows = (impacts = allImpacts) => [
   prisma.cityWork.createMany({ data: works.map((w) => w.row) }),
-  prisma.cityWorkImpact.createMany({ data: works.flatMap((w) => w.buildingIds.map((buildingId) => ({ workId: w.row.id, buildingId }))) }),
+  prisma.cityWorkImpact.createMany({ data: impacts }),
 ];
 
 /**
@@ -433,16 +424,21 @@ const workRows = () => [
  * read from the news feed (lib/worksFeed.ts) stay (safe on a live server).
  */
 async function updateWorks() {
-  const needed = new Set(works.flatMap((w) => w.buildingIds));
-  const have = new Set((await prisma.building.findMany({ where: { id: { in: [...needed] } }, select: { id: true } })).map((b) => b.id));
-  const added = buildings.filter((b) => needed.has(b.id) && !have.has(b.id));
+  // A house a resident has opened may be in the DB under another id (a `gis-…` passport): its impacts go to that row.
+  const existing = await prisma.building.findMany({ select: { id: true, address: true } });
+  const have = new Set(existing.map((b) => b.id));
+  const byAddress = new Map(existing.map((b) => [norm(b.address), b.id]));
+  const rows = new Map(buildings.map((b) => [b.id, b]));
+  const resolve = (id: string) => (have.has(id) ? id : (byAddress.get(norm(rows.get(id)!.address)) ?? id));
+  const impacts = [...new Map(allImpacts.map((i) => ({ ...i, buildingId: resolve(i.buildingId) })).map((i) => [`${i.workId} ${i.buildingId}`, i])).values()];
+  const added = [...new Set(impacts.map((i) => i.buildingId))].filter((id) => !have.has(id)).map((id) => rows.get(id)!);
   await prisma.$transaction([
     prisma.building.createMany({ data: added }),
     prisma.cityWorkImpact.deleteMany({ where: { work: { sourceUrl: null } } }),
     prisma.cityWork.deleteMany({ where: { sourceUrl: null } }),
-    ...workRows(),
+    ...workRows(impacts),
   ]);
-  console.log(`works ${works.length}, new houses ${added.length}`);
+  console.log(`works ${works.length}, houses ${impacts.length}, new houses ${added.length}`);
 }
 
 async function main() {

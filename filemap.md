@@ -55,7 +55,7 @@
 - `components/flows/BillParts.tsx` — `Share` (a line's share bar), `Insights`, `CheckList`: shared by the analysis and the cabinet
 - `components/flows/BillChart.tsx` — recharts bar chart of monthly totals, its own chunk
 - `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis, one tab per receipt kind (коммуналка / капремонт / электроэнергия / другая; demo only for коммуналка), compared with the resident's own saved receipts; numbers, lines with shares, checks, monthly chart (`BillChart.tsx`, loaded lazily), changes, one button saves every analysed tab to the cabinet
-- `components/flows/WorksFeed.tsx` — §5.7 feed: groups, `isDone`, `?building=` first, `?work=` highlight/scroll/open group; a work from the news has an «Из новостей» badge, comes first in its group (newest first) and links to its article
+- `components/flows/WorksFeed.tsx` — §5.7 feed: groups, `isDone`, `?building=` first, `?work=` highlight/scroll/open group; «и ещё N домов» opens every house grouped by street; a work from the news has an «Из новостей» badge, comes first in its group (newest first) and links to its article
 - `components/flows/WorksSearch.tsx` — street field, street chips, «Найдено работ: N»
 - `components/flows/DocumentParser.tsx` — «Разобрать свой документ» via `/api/ai/document`
 - `components/cabinet/CabinetPage.tsx` — /me: login or profile + sections (right sticky list `layoutId="cabinet-tab"`, chips on phones)
@@ -68,7 +68,7 @@
 - `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е), formatters `rub`, `monthLabel`, `dayLabel`; `vlDay` (calendar day in Vladivostok, for works now / soon / done)
 - `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`, `SearchResult` (houses carry lat/lng), `HealthDTO`, `HouseSummaryDTO`
 - `lib/db.ts` — `prisma` PrismaClient singleton
-- `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `houseAt` + `streetKey`/`houseNumberKey` (house under a click: same street and number within 80 m), `houseFromGis` (else a `gis-…` passport from the 2GIS address), `streetPattern`, `getWorkStreets` (§6.4), `streetPoints` (OSM address points of a street)
+- `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `houseAt` + `streetKey`/`houseNumberKey` (house under a click: same street and number within 80 m), `houseFromGis` (else a `gis-…` passport from the 2GIS address), `streetPattern` (a numbered street needs its number: «1-я Лесная»), `getWorkStreets` (§6.4), `allAddressPoints`
 - `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getMapComplexes`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
 - `lib/nav.ts` — hrefs (`districtHref`, `complexHref`, `houseHref`, `issueHref`, `workHref`), `complexLabel`, `breadcrumbs`
 - `lib/bills.ts` — receipt analytics for the analysis and the cabinet: `billChecks` (lines add up, volume × tariff, sewerage = hot + cold, repeats), `lineDeltas`, `billInsights`
@@ -94,11 +94,11 @@
 - `app/api/cabinet/houses/route.ts` — `GET ?ids=` saved house summaries (`HouseSummaryDTO`)
 - `lib/ai/schemas.ts` — zod schemas of the rules layer: route inputs and outputs of `classifyIssue`, `parseBill` (`BillRaw` → `BillOutput`), `summarizeDocument` (`DocSummary`, `DocumentOutput`), `districtDigest`
 - `lib/ai/index.ts` — rules facade (§6.1, no AI model): `classifyIssue`, `parseBill`, `summarizeDocument` (+ house binding), `districtDigest`
-- `lib/ai/rules.ts` — the rules: keyword classification over the authority handbook, receipt text parser + `analyzeBill` (glossary, history, tariff/season changes), prepared or heuristic document summaries (a street whose name is part of another found street is dropped), `houseNumbers`, `bindBuildings`, `newsHouses` (houses and point of a news item, OSM houses get passports), `districtFacts`/`districtDigest`
+- `lib/ai/rules.ts` — the rules: keyword classification over the authority handbook, receipt text parser + `analyzeBill` (glossary, history, tariff/season changes), prepared or heuristic document summaries (a street whose name is part of another found street, or whose mention lies inside a longer street's, is dropped; «1-й Лесной» is not house 1), `houseNumbers`, `bindBuildings`, `streetRefs`/`houseMatches` (used by the works feed), `districtFacts`/`districtDigest`
 - `lib/ai/pdf.ts` — `pdfText`: text of a PDF receipt line by line (unpdf; items on one baseline = one line); empty for scans. Self-check `lib/ai/pdf.test.ts`
 - `lib/ai/rules.test.ts` — self-check of the rules (needs the seeded DB)
-- `lib/worksFeed.ts` — city works from the newsvl.ru RSS (§6.4): `parseFeed`, `isWorkNews` (by the headline), `workDates`, `periodLabel`, `syncNewsWorks` (upsert by article id with houses, own summary, the RSS lead and a link; a prepared twin — same kind, days, within 1 km — is skipped; old ones removed: 30 days after the end, undated after 3 days)
-- `lib/worksFeed.test.ts` — self-check of the feed parser and dates (no network)
+- `lib/worksFeed.ts` — city works from the newsvl.ru RSS (§6.4): `parseFeed`, `isWorkNews` (by the headline), `workDates`, `periodLabel`, `workPoint` (place without house numbers: where the first two named streets come closest within 1 km, or the middle of one street shorter than 600 m; else none), `pickHouses` (shared with the seed: houses named by number, plus around the place every house within 500 m — plus half the gap between two streets — or, for an outage listing 3+ streets, every house of those streets within 3 km), `splitAddress`, `syncNewsWorks` (OSM-only houses get passports; no place → only named houses and no point; upsert by article id with own summary, the RSS lead and a link; a prepared twin — same kind, days, within 1 km or naming its street — is skipped; old ones removed: 30 days after the end, undated after 3 days)
+- `lib/worksFeed.test.ts` — self-check of the feed parser, dates and places (no network)
 - `app/api/ai/classify/route.ts` — `POST` issue classification and appeal text
 - `app/api/ai/bill/route.ts` — `POST` receipt analysis (`demo`, `text` or `image`)
 - `app/api/ai/document/route.ts` — `POST` work announcement summary + bound houses
@@ -109,7 +109,7 @@
 - `public/demo/` — demo images (unchanged)
 - `scripts/` — OSM fetch scripts (unchanged)
 - `prisma/schema.prisma` — Prisma schema §3.2 (sqlite)
-- `prisma/seed.ts` — deterministic seed §3.3 (salted mulberry32, turf point-in-polygon; houses near microdistricts and on city-work streets; issue ids `iss-NNN`); `npm run seed:works` (`--works`) replaces only the prepared city works and adds their houses — issues, votes, users and works from the news feed stay, safe on the server
+- `prisma/seed.ts` — deterministic seed §3.3 (salted mulberry32, turf point-in-polygon; houses near microdistricts and around city works (`pickHouses`); issue ids `iss-NNN`); `npm run seed:works` (`--works`) replaces only the prepared city works and adds their houses (a house already in the DB under another id is matched by address) — issues, votes, users and works from the news feed stay, safe on the server
 - `prisma/works-feed.ts` — `npm run works:fetch`: runs `syncNewsWorks` (cron on the server)
 - `components.json` — shadcn config
 - `next.config.ts` — security headers on every response (frame-ancestors, nosniff, Referrer-Policy, Permissions-Policy), sandbox CSP for resident photos, no `X-Powered-By`
