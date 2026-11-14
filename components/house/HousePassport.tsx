@@ -1,6 +1,7 @@
 "use client";
 
 // House passport (§5.4): header, health, sections, actions.
+import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, ExternalLink, ReceiptRussianRuble, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -161,8 +162,14 @@ export function HousePassport({ passport }: { passport: BuildingPassportDTO }) {
                     </span>
                   </span>
                   {i.photoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element -- data URLs and local SVGs, nothing to optimise
-                    <img src={i.photoUrl} alt="" className="size-14 shrink-0 rounded-lg bg-muted object-cover ring-1 ring-border" />
+                    <Image
+                      src={i.photoUrl}
+                      alt=""
+                      width={112}
+                      height={112}
+                      unoptimized={!i.photoUrl.startsWith("/api/")}
+                      className="size-14 shrink-0 rounded-lg bg-muted object-cover ring-1 ring-border"
+                    />
                   )}
                 </Link>
               </li>

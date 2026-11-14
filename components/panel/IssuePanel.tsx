@@ -1,6 +1,7 @@
 "use client";
 
 // One issue (§5.4–5.5): what it is, the photo and the resident's words, where, and «Меня тоже касается».
+import Image from "next/image";
 import Link from "next/link";
 import { House, MapPin } from "lucide-react";
 import { useMapScene } from "@/components/map/MapContext";
@@ -50,8 +51,14 @@ export function IssuePanel({
       </header>
 
       {i.photoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element -- data URLs and local SVGs, nothing to optimise
-        <img src={i.photoUrl} alt="Фото проблемы" className="max-h-80 w-full rounded-2xl bg-muted object-contain ring-1 ring-border" />
+        <Image
+          src={i.photoUrl}
+          alt="Фото проблемы"
+          width={800}
+          height={600}
+          unoptimized={!i.photoUrl.startsWith("/api/")}
+          className="max-h-80 w-full rounded-2xl bg-muted object-contain ring-1 ring-border"
+        />
       )}
 
       <section className="panel-box flex flex-col gap-2">

@@ -34,7 +34,7 @@ export const toIssueDTO = (i: Issue, address?: string): IssueDTO => ({
   category: i.category as IssueCategory,
   title: i.title,
   description: i.description,
-  photoUrl: i.photoUrl,
+  photoUrl: i.photoUrl?.startsWith("data:") ? `/api/issues/${i.id}/photo` : i.photoUrl,
   authorityId: i.authorityId,
   appealText: i.appealText,
   status: i.status as IssueStatus,

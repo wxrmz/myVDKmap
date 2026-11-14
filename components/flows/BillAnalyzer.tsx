@@ -2,8 +2,8 @@
 
 // «Разобрать квитанцию» (§5.6): PDF, text or the demo → lines in plain words, chart by month, what changed.
 import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { FileUp, Loader2, Save, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,8 @@ import { BILL_KIND_LABELS, BILL_KINDS, type BillKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { api, readAsDataUrl } from "./api";
 import { FlowHeader } from "./FlowHeader";
+
+const BillChart = dynamic(() => import("./BillChart"), { ssr: false });
 
 // Base64 grows the file by a third; the API takes up to 8 MB.
 const MAX_FILE = 5 * 1024 * 1024;
@@ -165,20 +167,7 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
             <section className="panel-box flex flex-col gap-3">
               <h2 className="text-lg font-semibold">Сумма по месяцам</h2>
               <div className="h-52" role="img" aria-label={chart.map((c) => `${c.label}: ${rub(c.total)}`).join(", ")}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chart} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
-                    <CartesianGrid vertical={false} stroke="var(--border)" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
-                    <YAxis width={48} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
-                    <Tooltip
-                      cursor={{ fill: "var(--muted)" }}
-                      formatter={(v) => [rub(Number(v)), "Сумма"]}
-                      labelFormatter={(_, p) => p[0]?.payload.label ?? ""}
-                      contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--foreground)" }}
-                    />
-                    <Bar dataKey="total" fill="var(--foreground)" radius={[6, 6, 0, 0]} maxBarSize={48} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <BillChart data={chart} />
               </div>
             </section>
           )}

@@ -17,7 +17,7 @@ import { getCabinet, updateCabinet } from "@/lib/cabinet";
 import { houseHref, issueHref } from "@/lib/nav";
 import { ISSUE_CATEGORY_LABELS, ISSUE_KIND_LABELS, ISSUE_KINDS, type IssueDTO, type IssueKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { api, readAsDataUrl } from "./api";
+import { api, readPhoto } from "./api";
 import { FlowHeader } from "./FlowHeader";
 
 const STEPS = ["Фото", "Описание", "Адрес", "Результат"];
@@ -120,7 +120,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
     if (!file) return;
     if (!file.type.startsWith("image/")) return toast.error("Нужна картинка: JPG, PNG или похожий формат");
     if (file.size > MAX_PHOTO) return toast.error("Фото больше 6 МБ. Выберите поменьше");
-    setPhoto(await readAsDataUrl(file));
+    setPhoto(await readPhoto(file));
   }
 
   async function classify() {

@@ -47,10 +47,11 @@
 - `components/ThemeToggle.tsx` — round sun/moon button; inside a View Transition step it sets the theme and sends `theme:switch` (the map flips its night map), then a 300 ms fade of page and map together; exports `ThemeSwitchDetail`
 - `components/Splash.tsx` — §5.10 splash (CSS bar, finishes on `map:ready`, 700 ms–6 s; hidden on /bill, /changes, /report, /me)
 - `components/PageLoading.tsx` — `PageLoading` (title + delayed shimmer cards) and `PanelSkeleton`
-- `components/flows/api.ts` — `api()` typed JSON fetch (errors → Russian toast + `null`), `readAsDataUrl`
+- `components/flows/api.ts` — `api()` typed JSON fetch (errors → Russian toast + `null`), `readAsDataUrl`, `readPhoto` (shrinks a photo to a ≤1600 px JPEG before upload)
 - `components/flows/FlowHeader.tsx` — flow page title row with a close link
 - `components/flows/ReportWizard.tsx` — §5.5 wizard (photo, kind + description, address: «этот дом» / search / map point — never preset, AI result, save → `issues:changed` + cabinet); draft in the cabinet
-- `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis, one tab per receipt kind (коммуналка / капремонт / электроэнергия / другая; demo only for коммуналка), lines, recharts monthly chart, changes, save to cabinet
+- `components/flows/BillChart.tsx` — recharts bar chart of monthly totals, its own chunk
+- `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis, one tab per receipt kind (коммуналка / капремонт / электроэнергия / другая; demo only for коммуналка), lines, monthly chart (`BillChart.tsx`, loaded lazily), changes, save to cabinet
 - `components/flows/WorksFeed.tsx` — §5.7 feed: groups, `isDone`, `?building=` first, `?work=` highlight/scroll/open group
 - `components/flows/WorksSearch.tsx` — street field, street chips, «Найдено работ: N»
 - `components/flows/DocumentParser.tsx` — «Разобрать свой документ» via `/api/ai/document`
@@ -77,6 +78,7 @@
 - `app/api/search/route.ts` — `GET /api/search?q=`
 - `app/api/buildings/at/route.ts` — `GET /api/buildings/at?gisId&lat&lng&street&number` → `{ id }` of the passport (ours, OSM or new `gis-…`), 404 outside the districts
 - `app/api/issues/route.ts` — `GET /api/issues[?building=]`, `POST /api/issues` (zod, authority and house checks, `osm-…` houses created lazily)
+- `app/api/issues/[id]/photo/route.ts` — `GET` an uploaded photo (stored as a data URL) as an image, cached for a year; DTOs link here instead of embedding it
 - `app/api/issues/[id]/support/route.ts` — `POST` «Меня тоже касается» → `{ supports }`
 - `app/api/issues/[id]/vote/route.ts` — `POST { gone }` (signed in, one vote per user): closes the issue into the house archive or reopens it by `lib/votes.ts`
 - `app/api/auth/register|login|logout/route.ts` — `POST` (rate-limited register/login)
