@@ -1,12 +1,12 @@
 # filemap
 
 - `START_PROMPT.md` — normative product spec (§N)
-- `middleware.ts` — every full page load redirects to `/` (start page), except `/house/…` and `/issue/…` (shared links); a reload of those goes home via the script in `app/layout.tsx`
+- `middleware.ts` — `/api`: a POST/PUT/DELETE another site's page sends (`Sec-Fetch-Site: cross-site`) gets 403; pages: every full page load redirects to `/` (start page), except `/house/…` and `/issue/…` (shared links); a reload of those goes home via the script in `app/layout.tsx`
 - `README.md` — project overview and run instructions (RU)
 - `CLAUDE.md` — agent rules and commands
 - `docs/SPEC.md` — decisions on top of START_PROMPT
 - `docs/PLAN.md` — task list and status
-- `app/layout.tsx` — root layout: Inter, `Providers`, `Splash`, metadata
+- `app/layout.tsx` — root layout: Inter, `Providers` (also toasts a failed cabinet sync), `Splash`, metadata (title template, description, Open Graph); pages set their own titles
 - `app/globals.css` — §7 tokens (light/dark), `panel-box`, `.skeleton-shimmer`, `<details>` animation, view-transition and splash CSS
 - `app/(map)/layout.tsx` — map group layout (`force-dynamic`): fetches map data once, `MapProvider` + `MapShell` around the page
 - `app/(map)/page.tsx` — `/`: `CityPanel`
@@ -63,7 +63,7 @@
 - `components/cabinet/CommunitySettings.tsx` — «Соседи» (board, poll), «Настройки» (font size, notifications, profile, Госуслуги, password, delete account)
 - `components/cabinet/shared.tsx` — `useCabinet`, `useFontScale`, `useHouseSummaries`, `CabinetSection`, `Empty`
 - `components/ui/` — shadcn (radix-ui) with §7 tweaks: accordion, badge, button, dialog, input, popover, skeleton, sonner, textarea
-- `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е), formatters `rub`, `monthLabel`, `dayLabel`
+- `lib/utils.ts` — `cn()`, `norm()` (Russian text comparison: lowercase ru, ё→е), formatters `rub`, `monthLabel`, `dayLabel`; `vlDay` (calendar day in Vladivostok, for works now / soon / done)
 - `lib/types.ts` — §3.2 dictionaries (categories, statuses, work kinds, severity + Russian labels), `BillItem`, DTOs for `lib/queries.ts`, `SearchResult` (houses carry lat/lng), `HealthDTO`, `HouseSummaryDTO`
 - `lib/db.ts` — `prisma` PrismaClient singleton
 - `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `houseAt` + `streetKey`/`houseNumberKey` (house under a click: same street and number within 80 m), `houseFromGis` (else a `gis-…` passport from the 2GIS address), `streetPattern`, `getWorkStreets` (§6.4)
@@ -72,10 +72,12 @@
 - `lib/bills.ts` — receipt analytics for the analysis and the cabinet: `billChecks` (lines add up, volume × tariff, sewerage = hot + cold, repeats), `lineDeltas`, `billInsights`
 - `lib/health.ts` — `computeHealth` (§6.5), `plural` (Russian plurals)
 - `lib/votes.ts` — `tally`: closed when ≥ 3 «уже решено» (the author counts as 3) outnumber «ещё есть»
-- `lib/auth.ts` — server auth §5.8: scrypt hash/verify, sessions (`vdk_session`, SHA-256 in DB), rate limit, zod schemas, `publicUser`
+- `lib/rateLimit.ts` — per-IP limits (`rateLimit`) for sign-in, sign-up, new issues and `/api/ai/*`; the IP comes from nginx's X-Real-IP / X-Forwarded-For, loopback means unknown (not limited)
+- `lib/photo.ts` — `safePhoto`: an uploaded photo's real type from its first bytes (JPEG, PNG, GIF, WebP, HEIC, AVIF); SVG and anything else is refused
+- `lib/auth.ts` — server auth §5.8: scrypt hash/verify, sessions (`vdk_session`, SHA-256 in DB), zod schemas, `publicUser`
 - `lib/session.ts` — client session store (`useSession`, `setSessionUser`, `clearSession`); starts/stops cabinet sync
-- `lib/cabinet.ts` — cabinet data §5.8: `CabinetSchema`, `mergeCabinets`, localStorage store (`updateCabinet`, `getCabinet`), server sync, `toggleSavedHouse`, `markSupported`; event `cabinet:changed`
-- `lib/streets.test.ts`, `lib/houses.test.ts`, `lib/health.test.ts`, `lib/auth.test.ts`, `lib/cabinet.test.ts`, `lib/votes.test.ts`, `lib/bills.test.ts` — self-checks (`npx tsx <file>`)
+- `lib/cabinet.ts` — cabinet data §5.8: `CabinetSchema`, `mergeCabinets`, localStorage store (`updateCabinet`, `getCabinet`), server sync (retries a 5xx twice; a failure fires `cabinet:sync-failed`), `toggleSavedHouse`, `markSupported`; event `cabinet:changed`
+- `lib/streets.test.ts`, `lib/houses.test.ts`, `lib/health.test.ts`, `lib/auth.test.ts`, `lib/cabinet.test.ts`, `lib/votes.test.ts`, `lib/bills.test.ts`, `lib/photo.test.ts`, `lib/rateLimit.test.ts` — self-checks (`npx tsx <file>`)
 - `lib/ai/http.ts` — `apiError`, `parseBody` (8 MB limit, JSON, zod with Russian messages), `serverError`
 - `app/api/search/route.ts` — `GET /api/search?q=`
 - `app/api/buildings/at/route.ts` — `GET /api/buildings/at?gisId&lat&lng&street&number` → `{ id }` of the passport (ours, OSM or new `gis-…`), 404 outside the districts
@@ -105,6 +107,7 @@
 - `prisma/schema.prisma` — Prisma schema §3.2 (sqlite)
 - `prisma/seed.ts` — deterministic seed §3.3 (salted mulberry32, turf point-in-polygon; houses near microdistricts and on city-work streets; issue ids `iss-NNN`); `npm run seed:works` (`--works`) replaces only city works and adds their houses — issues, votes and users stay, safe on the server
 - `components.json` — shadcn config
-- `eslint.config.mjs`, `postcss.config.mjs`, `next.config.ts`, `tsconfig.json` — tooling config
+- `next.config.ts` — security headers on every response (frame-ancestors, nosniff, Referrer-Policy, Permissions-Policy), sandbox CSP for resident photos, no `X-Powered-By`
+- `eslint.config.mjs`, `postcss.config.mjs`, `tsconfig.json` — tooling config
 - `.env.example` — env keys (§8)
 - `.claude/launch.json` — preview servers `web`, `web-prod`

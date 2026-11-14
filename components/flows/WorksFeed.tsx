@@ -5,17 +5,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { houseHref } from "@/lib/nav";
 import { WORK_KIND_LABELS, type CityWorkDTO } from "@/lib/types";
-import { cn, dayLabel, norm } from "@/lib/utils";
+import { cn, dayLabel, norm, vlDay } from "@/lib/utils";
 import { WorksSearch } from "./WorksSearch";
 
 const MAX_CHIPS = 8;
 const SHOWN_HOUSES = 4;
 
-/** Done from the day after `endDate` (dates are stored at noon). */
+/** Done from the day after `endDate`, by the Vladivostok calendar. */
 export function isDone(w: Pick<CityWorkDTO, "endDate">, now: number) {
-  if (!w.endDate) return false;
-  const end = new Date(w.endDate);
-  return now >= new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
+  return Boolean(w.endDate) && vlDay(w.endDate!) < vlDay(now);
 }
 
 const dates = (w: CityWorkDTO) => (w.endDate ? `${dayLabel(w.startDate)} — ${dayLabel(w.endDate)}` : `с ${dayLabel(w.startDate)}, срок не указан`);
@@ -46,8 +44,9 @@ export function WorksFeed({
 
   const mine = (w: CityWorkDTO) => Boolean(buildingId && w.buildings.some((b) => b.id === buildingId));
   const ordered = [...shown].sort((a, b) => Number(mine(b)) - Number(mine(a)));
-  const current = ordered.filter((w) => Date.parse(w.startDate) <= now && !isDone(w, now));
-  const soon = ordered.filter((w) => Date.parse(w.startDate) > now);
+  const today = vlDay(now);
+  const current = ordered.filter((w) => vlDay(w.startDate) <= today && !isDone(w, now));
+  const soon = ordered.filter((w) => vlDay(w.startDate) > today);
   const done = ordered.filter((w) => isDone(w, now));
 
   const highlightedDone = works.some((w) => w.id === workId && isDone(w, now));

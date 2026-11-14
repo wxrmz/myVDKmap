@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { allowAttempt, hashPassword, publicUser, RegisterSchema, startSession } from "@/lib/auth";
+import { hashPassword, publicUser, RegisterSchema, startSession } from "@/lib/auth";
 import { apiError, parseBody, serverError } from "@/lib/ai/http";
 import { prisma } from "@/lib/db";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
-    if (!allowAttempt(req)) return apiError(429, "Слишком много попыток. Подождите минуту");
+    const limited = rateLimit(req, "register", 5, 60);
+    if (limited) return limited;
     const body = await parseBody(req, RegisterSchema);
     if (body instanceof NextResponse) return body;
     if (await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } }))

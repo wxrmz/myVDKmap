@@ -3,9 +3,12 @@ import { parseBill } from "@/lib/ai";
 import { apiError, parseBody, serverError } from "@/lib/ai/http";
 import { pdfText } from "@/lib/ai/pdf";
 import { BillInputSchema } from "@/lib/ai/schemas";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
+    const limited = rateLimit(req, "ai", 30, 10);
+    if (limited) return limited;
     const body = await parseBody(req, BillInputSchema);
     if (body instanceof NextResponse) return body;
     // A PDF is read as its own lines and then parsed like pasted text.

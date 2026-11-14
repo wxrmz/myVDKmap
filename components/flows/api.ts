@@ -25,10 +25,9 @@ export async function api<T>(url: string, init?: { method?: string; body?: unkno
   return null;
 }
 
-/** A photo as a JPEG data URL at most 1600 px wide or tall: a phone shot shrinks from megabytes to ~300 KB. SVGs
- * and images the browser cannot decode are kept as they are. */
+/** A photo as a JPEG data URL at most 1600 px wide or tall: a phone shot shrinks from megabytes to ~300 KB. Images the
+ * browser cannot decode (HEIC outside Safari) are kept as they are. */
 export async function readPhoto(file: File, max = 1600) {
-  if (file.type === "image/svg+xml") return readAsDataUrl(file);
   try {
     const bmp = await createImageBitmap(file);
     const k = Math.min(1, max / Math.max(bmp.width, bmp.height));

@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { DocumentParser } from "@/components/flows/DocumentParser";
 import { FlowHeader } from "@/components/flows/FlowHeader";
 import { WorksFeed } from "@/components/flows/WorksFeed";
 import { getCityWorks } from "@/lib/queries";
 import { houseHref } from "@/lib/nav";
 import { getWorkStreets } from "@/lib/search";
+
+export const metadata: Metadata = { title: "Что меняется в городе", description: "Ремонты, отключения и стройки во Владивостоке: где, когда и какие дома затронуты." };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ building?: string | string[]; work?: string | string[] }> }) {
   const [{ building, work }, works] = await Promise.all([searchParams, getCityWorks()]);

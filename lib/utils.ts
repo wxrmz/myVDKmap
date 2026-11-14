@@ -16,4 +16,7 @@ export function monthLabel(period: string) {
   return `${s[0].toUpperCase()}${s.slice(1)} ${period.slice(0, 4)}`;
 }
 
+/** «YYYY-MM-DD» of a moment in Vladivostok: works start and end by the city's calendar, not the server's or the browser's. */
+export const vlDay = (t: number | string | Date) => new Date(t).toLocaleDateString("en-CA", { timeZone: "Asia/Vladivostok" });
+
 export const dayLabel = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });

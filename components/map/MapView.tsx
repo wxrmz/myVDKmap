@@ -10,7 +10,7 @@ import { Building2, Construction } from "lucide-react";
 import type * as MapGL from "@2gis/mapgl/types";
 import { complexHref, districtHref, houseHref, issueHref, workHref } from "@/lib/nav";
 import type { CityWorkDTO, DistrictWithCountsDTO, IssueDTO, MapComplexDTO } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, vlDay } from "@/lib/utils";
 import type { ThemeSwitchDetail } from "@/components/ThemeToggle";
 import { useMap, type MapLayers, type MapLevel, type MapScene } from "./MapContext";
 import { MapTip, setTip, TIP_WIDTH, type Tip, type TipTarget } from "./MapTip";
@@ -31,7 +31,6 @@ const FIT_MS = 1200;
 const EASING = "easeInOutCubic" as const;
 const FRAME_PAD = { top: 24, right: 24, bottom: 24, left: 24 };
 const CLUSTER_PX = 48;
-const DAY = 86_400_000;
 
 /** District polygon look per theme: a chosen district keeps only its border, the others stay visible but lighter. */
 function districtLook(color: string, theme: Theme, chosen: boolean, focused: boolean) {
@@ -578,7 +577,7 @@ const Markers = memo(function Markers({
     return works.flatMap((w) =>
       w.lat !== null &&
       w.lng !== null &&
-      (!w.endDate || now <= Date.parse(w.endDate) + DAY) &&
+      (!w.endDate || vlDay(w.endDate) >= vlDay(now)) &&
       insideDistrict(focusShape, { lat: w.lat, lng: w.lng })
         ? [{ ...w, lat: w.lat, lng: w.lng }]
         : [],

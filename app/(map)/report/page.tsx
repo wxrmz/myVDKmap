@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { ReportWizard } from "@/components/flows/ReportWizard";
 import { getAuthorities, getBuilding } from "@/lib/queries";
+
+export const metadata: Metadata = { title: "Сообщить о проблеме", description: "Отметьте проблему на карте: мы подскажем, кто за неё отвечает, и подготовим текст обращения." };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ building?: string | string[] }> }) {
   const { building } = await searchParams;

@@ -6,11 +6,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params;
     const row = await prisma.issue.findUnique({ where: { id }, select: { photoUrl: true } });
-    const m = /^data:(image\/[\w.+-]+);base64,([\w+/=]*)$/.exec(row?.photoUrl ?? "");
+    const m = /^data:(image\/(?:jpeg|png|gif|webp|heic|avif));base64,([\w+/=]*)$/.exec(row?.photoUrl ?? "");
     if (!m) return apiError(404, "Фото не найдено");
     return new Response(Buffer.from(m[2], "base64"), {
       // A photo never changes after the report is sent.
-      headers: { "Content-Type": m[1], "Cache-Control": "public, max-age=31536000, immutable" },
+      headers: {
+        "Content-Type": m[1],
+        "Cache-Control": "public, max-age=31536000, immutable", // sandbox CSP and nosniff: next.config.ts
+      },
     });
   } catch (e) {
     return serverError(e);

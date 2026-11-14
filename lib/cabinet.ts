@@ -139,13 +139,22 @@ export const getCabinet = () => readRaw(rawCabinet());
 
 let syncing = false;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
-const push = () => {
+/** Fired with the HTTP status (0 offline) when the cabinet could not be saved on the server; the local copy is kept. */
+export const CABINET_SYNC_FAILED = "cabinet:sync-failed";
+const push = (attempt = 0) => {
   clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => {
-    fetch("/api/cabinet/data", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(getCabinet()) }).catch(
-      () => {}, // offline: the next change or login pushes again, the local copy is kept
-    );
-  }, 600);
+  pushTimer = setTimeout(
+    async () => {
+      const res = await fetch("/api/cabinet/data", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(getCabinet()) }).catch(
+        () => null,
+      );
+      if (res?.ok) return;
+      if (res?.status === 401) syncing = false; // the session ended: the next login merges this copy back
+      else if (attempt < 2 && (!res || res.status >= 500)) return push(attempt + 1);
+      window.dispatchEvent(new CustomEvent(CABINET_SYNC_FAILED, { detail: res?.status ?? 0 }));
+    },
+    attempt ? attempt * 5000 : 600,
+  );
 };
 
 function write(c: Cabinet) {

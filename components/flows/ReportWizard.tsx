@@ -118,7 +118,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
 
   async function pickFile(file: File | undefined) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) return toast.error("Нужна картинка: JPG, PNG или похожий формат");
+    if (!file.type.startsWith("image/") || file.type === "image/svg+xml") return toast.error("Нужна фотография: JPG, PNG, WebP или HEIC");
     if (file.size > MAX_PHOTO) return toast.error("Фото больше 6 МБ. Выберите поменьше");
     setPhoto(await readPhoto(file));
   }
@@ -169,7 +169,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
       ],
     }));
     setSaved(issue);
-    toast.success("Проблема появилась на карте");
+    toast.success("Проблема на карте. Ответственному она сама не уходит — отправьте обращение");
   }
 
   function restart() {
@@ -226,6 +226,9 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
               </span>
               <h2 className="text-lg font-semibold">Проблема на карте</h2>
               <p className="text-muted-foreground">«{saved.title}» сохранена и появилась в кабинете, в разделе «Обращения».</p>
+              <p className="text-sm">
+                Ответственному она сама не уходит: чтобы её решили, отправьте текст обращения через «Решаем вместе» или в управляющую компанию.
+              </p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild className="h-11 rounded-xl">
                   <Link href={issueHref(saved.id)} prefetch>
@@ -262,7 +265,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
                 >
                   <ImagePlus className="size-8" />
                   <span className="font-medium">Загрузить фото</span>
-                  <span className="text-sm">JPG или PNG, до 6 МБ</span>
+                  <span className="text-sm">JPG, PNG или HEIC, до 6 МБ</span>
                 </button>
               )}
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
@@ -277,6 +280,9 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
                 )}
               </div>
               <p className="text-sm text-muted-foreground">Можно и без фото — тогда опишите проблему словами на следующем шаге.</p>
+              <p className="text-sm text-muted-foreground">
+                Фото и описание будут видны всем на карте. Не снимайте лица, номера машин и документы.
+              </p>
             </>
           ) : step === 1 ? (
             <>
@@ -380,6 +386,9 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
                         <ExternalLink /> Открыть Госуслуги «Решаем вместе»
                       </a>
                     </Button>
+                    <p className="text-sm text-muted-foreground sm:col-span-2">
+                      «Сохранить на карте» показывает проблему жителям. Ответственному обращение уходит, только когда вы его отправите.
+                    </p>
                     <Button className="h-11 rounded-xl sm:col-span-2" onClick={save} disabled={busy}>
                       {busy ? <Loader2 className="animate-spin" /> : <MapPin />} Сохранить на карте
                     </Button>

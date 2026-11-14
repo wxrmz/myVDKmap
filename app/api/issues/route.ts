@@ -4,8 +4,10 @@ import { apiError, parseBody, serverError } from "@/lib/ai/http";
 import { currentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getIssues, toIssueDTO } from "@/lib/queries";
+import { safePhoto } from "@/lib/photo";
 import { ensureOsmBuilding } from "@/lib/search";
 import { ISSUE_CATEGORIES, ISSUE_KINDS } from "@/lib/types";
+import { rateLimit } from "@/lib/rateLimit";
 
 const OUTSIDE = "Точка за пределами Владивостока";
 
@@ -17,10 +19,14 @@ const IssueInput = z.object({
   category: z.enum(ISSUE_CATEGORIES, { error: "Выберите категорию из списка" }),
   title: z.string({ error: "Добавьте заголовок" }).trim().min(1, "Добавьте заголовок").max(200, "Заголовок длиннее 200 символов"),
   description: z.string({ error: "Опишите проблему" }).trim().min(1, "Опишите проблему").max(5000, "Описание длиннее 5000 символов"),
-  // A data URL (upload), an https link, or a site path such as the demo photo.
+  // An uploaded raster photo (checked by its bytes: no SVG or other active content) or the demo photo.
   photoUrl: z
     .string()
-    .regex(/^(data:image\/[\w.+-]+;base64,|https?:\/\/|\/(?!\/))/, "Фото должно быть картинкой")
+    .transform((v, ctx) => {
+      const ok = v.startsWith("/demo/") && !v.includes("..") ? v : safePhoto(v);
+      if (!ok) ctx.addIssue({ code: "custom", message: "Фото должно быть снимком: JPG, PNG, WebP или HEIC" });
+      return ok ?? v;
+    })
     .optional(),
   authorityId: z.string({ error: "Укажите, кому направить обращение" }).min(1, "Укажите, кому направить обращение"),
   appealText: z.string({ error: "Добавьте текст обращения" }).trim().min(1, "Добавьте текст обращения").max(10000, "Обращение длиннее 10 000 символов"),
@@ -37,6 +43,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const limited = rateLimit(req, "issue", 20, 60);
+    if (limited) return limited;
     const body = await parseBody(req, IssueInput);
     if (body instanceof NextResponse) return body;
 

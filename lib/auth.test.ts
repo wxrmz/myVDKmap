@@ -1,6 +1,6 @@
 // Self-check for lib/auth.ts (§5.8): npx tsx lib/auth.test.ts
 import assert from "node:assert/strict";
-import { allowAttempt, hashPassword, LoginSchema, RegisterSchema, verifyPassword } from "./auth";
+import { hashPassword, LoginSchema, RegisterSchema, verifyPassword } from "./auth";
 
 async function main() {
   const stored = await hashPassword("секретный-пароль");
@@ -17,12 +17,6 @@ async function main() {
   assert.equal(RegisterSchema.parse({ email: " A@B.ru ", password: "12345678", name: "Аня" }).email, "a@b.ru");
   assert.equal(LoginSchema.safeParse({ email: "a@b.ru", password: "" }).success, false);
 
-  const req = new Request("http://x", { headers: { "x-forwarded-for": "10.0.0.1" } });
-  const t = 1_000_000;
-  for (let i = 0; i < 5; i++) assert.equal(allowAttempt(req, t + i), true, `attempt ${i + 1}`);
-  assert.equal(allowAttempt(req, t + 10), false, "6th attempt in a minute");
-  assert.equal(allowAttempt(new Request("http://x", { headers: { "x-forwarded-for": "10.0.0.2" } }), t), true, "other IP");
-  assert.equal(allowAttempt(req, t + 61_000), true, "after a minute");
   console.log("auth: ok");
 }
 

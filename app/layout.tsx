@@ -6,7 +6,12 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 
-export const metadata: Metadata = { title: "Мой дом. Владивосток" };
+const DESCRIPTION = "Карта Владивостока для жителей: проблемы двора и дома, ремонты и отключения рядом, квитанции ЖКХ простыми словами.";
+export const metadata: Metadata = {
+  title: { default: "Мой дом. Владивосток", template: "%s · Мой дом. Владивосток" },
+  description: DESCRIPTION,
+  openGraph: { type: "website", locale: "ru_RU", siteName: "Мой дом. Владивосток", title: "Мой дом. Владивосток", description: DESCRIPTION },
+};
 
 // A reload always starts at the city map. Middleware cannot tell a reload from an opened shared link, the browser can.
 const RELOAD_HOME = `if (location.pathname !== "/" && performance.getEntriesByType("navigation")[0]?.type === "reload") location.replace("/");`;

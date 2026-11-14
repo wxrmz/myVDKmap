@@ -7,7 +7,7 @@ import { plural } from "@/lib/health";
 import { getAuthorities, getDistrict, getDistrictStats } from "@/lib/queries";
 import { getWorkStreets, streetPattern } from "@/lib/search";
 import { ISSUE_CATEGORY_LABELS, type BillItem, type BillKind, type IssueCategory, type WorkKind } from "@/lib/types";
-import { norm } from "@/lib/utils";
+import { norm, vlDay } from "@/lib/utils";
 import type { BillInput, BillOutput, BillRaw, ClassifyInput, ClassifyOutput, DigestOutput, DocSummary } from "./schemas";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -473,7 +473,7 @@ export function summarizeDocument(text: string): DocSummary {
 export async function districtFacts(id: string) {
   const district = await getDistrict(id);
   if (!district) return null;
-  const startOfToday = new Date(new Date().setHours(0, 0, 0, 0));
+  const startOfToday = new Date(`${vlDay(Date.now())}T00:00:00+10:00`); // Vladivostok has no daylight saving
   const [stats, works] = await Promise.all([
     getDistrictStats(id),
     prisma.cityWork.count({

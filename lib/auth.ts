@@ -70,24 +70,6 @@ export async function endSession() {
   jar.delete(SESSION_COOKIE);
 }
 
-// --- rate limit: 5 attempts per minute per IP ---
-// shortcut: in-memory, per server process; move to the DB or Redis if the app ever runs on several instances.
-const attempts = new Map<string, number[]>();
-const WINDOW_MS = 60_000;
-const MAX_ATTEMPTS = 5;
-
-/** Records an attempt; false once the IP has used up its attempts for the last minute. */
-export function allowAttempt(req: Request, now = Date.now()) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "local";
-  const recent = (attempts.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
-  if (recent.length >= MAX_ATTEMPTS) {
-    attempts.set(ip, recent);
-    return false;
-  }
-  attempts.set(ip, [...recent, now]);
-  return true;
-}
-
 /** What the client sees about the user. */
 export const publicUser = (u: User) => ({
   id: u.id,
