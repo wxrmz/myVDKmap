@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   headers: async () => [
     { source: "/:path*", headers: SECURITY_HEADERS },
+    // District outlines: a static file the map loads after the page, cached for a day.
+    { source: "/geo/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
     // A resident's photo opened directly runs nothing, whatever is inside (the later rule wins for the same header).
     { source: "/api/issues/:id/photo", headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; sandbox" }] },
   ],

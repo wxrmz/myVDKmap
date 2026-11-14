@@ -13,14 +13,14 @@ import {
   type CityWorkDTO,
   type DistrictWithCountsDTO,
   type IssueCategory,
-  type IssueDTO,
+  type MapIssueDTO,
   type MapComplexDTO,
 } from "@/lib/types";
 
 export type TipTarget =
   | { kind: "district"; district: DistrictWithCountsDTO; complexes: number }
-  | { kind: "cluster"; issues: IssueDTO[] }
-  | { kind: "issue"; issue: IssueDTO }
+  | { kind: "cluster"; issues: MapIssueDTO[] }
+  | { kind: "issue"; issue: MapIssueDTO }
   | { kind: "work"; work: CityWorkDTO }
   | { kind: "complex"; complex: MapComplexDTO };
 

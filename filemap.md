@@ -20,7 +20,8 @@
 - `app/(map)/changes/page.tsx` — `/changes[?building=&work=]`: `WorksFeed` (+ `getWorkStreets`) and `DocumentParser`
 - `app/(map)/me/page.tsx` — `/me`: `CabinetPage`
 - `components/map/MapShell.tsx` — shell §5.1: rail, map beside the rail, panel on map pages, flow pages as an overlay (desktop 680 px card, phone full-screen sheet; hidden while `data-map-pick`), tab bar; applies the font size setting, loads the session
-- `components/map/Rail.tsx` — `Rail` (desktop 88 px), `TabBar` (phone), `isMapPath`; all links `prefetch`
+- `components/map/Rail.tsx` — `Rail` (desktop 88 px), `TabBar` (phone, 56 px), `isMapPath`; sections prefetched after the start by `useIdlePrefetch`
+- `components/map/useIdlePrefetch.ts` — `useIdlePrefetch(hrefs)`: prefetch once the page has loaded and the browser is idle
 - `components/panel/PanelSheet.tsx` — desktop 384 px panel column under the search; phone bottom sheet (112 px / half / 64 px from top, drag or tap the handle); sets map insets
 - `components/map/MapControls.tsx` — search; on phones round theme, «Мои дома» and layers buttons
 - `components/map/LayersPopover.tsx` — «Слои» popover §5.2
@@ -41,7 +42,7 @@
 - `components/map/MapContext.tsx` — `MapProvider`, `useMap`, `useMapScene`; types `MapData`, `MapScene`, `MapLevel`, `MapLayers`, `MapInsets`; issues refetch on `issues:changed`
 - `components/map/MapView.tsx` — 2GIS map §5.2: districts + hover overlay, HtmlMarker portals (complexes, issue clusters, works, scene houses, district labels), camera per scene, a second always-dark night map (camera, padding, districts, hover and building selection mirrored) laid above the always-light main canvas, so the theme is an opacity flip that `theme:switch` makes together with the page, `map:ready`, `map:click` (point for the report wizard; navigation off while picking), 2GIS building selection; from zoom 15.5 districts stop catching clicks and a click opens the passport of the clicked 2GIS building (`byid`, or geocode within 20 m without one → `/api/buildings/at`), highlighting it at once
 - `components/map/MapTip.tsx` — hover card (rAF-batched store `setTip`, framer-motion glide)
-- `components/map/shapes.ts` — `buildShapes` (label point and camera frame per district), `insideDistrict`, `clusterByDistance`
+- `components/map/shapes.ts` — `buildShapes` (label point and camera frame per district; run on the server by `app/(map)/layout.tsx`), `featureParts`, `insideDistrict`, `clusterByDistance`; outlines reach the browser as `/geo/districts.geojson`
 - `components/map/shapes.test.ts` — self-check (`npx tsx components/map/shapes.test.ts`)
 - `components/providers.tsx` — next-themes, `MotionConfig reducedMotion="user"`, sonner `Toaster`
 - `components/ThemeToggle.tsx` — round sun/moon button; inside a View Transition step it sets the theme and sends `theme:switch` (the map flips its night map), then a 300 ms fade of page and map together; exports `ThemeSwitchDetail`

@@ -5,14 +5,19 @@ import type { Feature, FeatureCollection, MultiPolygon, Polygon, Position } from
 export type DistrictFeature = Feature<Polygon | MultiPolygon, { id: string; name: string; color: string }>;
 export type DistrictGeo = FeatureCollection<Polygon | MultiPolygon, { id: string; name: string; color: string }>;
 
-export interface DistrictShape {
-  feature: DistrictFeature;
-  /** Polygon parts, each `[outer, ...holes]` as 2GIS `Polygon` coordinates. */
-  parts: Position[][][];
+/** Computed on the server (`app/(map)/layout.tsx`): the label search is too heavy for a phone at startup. */
+export interface DistrictPlace {
   /** `[lng, lat]` of the chosen part's center: the district label. */
   label: [number, number];
   /** Bounds of the chosen part for `fitBounds`. */
   frame: { southWest: [number, number]; northEast: [number, number] };
+}
+
+export interface DistrictShape extends DistrictPlace {
+  /** Absent until the browser has loaded `/geo/districts.geojson`. */
+  feature?: DistrictFeature;
+  /** Polygon parts, each `[outer, ...holes]` as 2GIS `Polygon` coordinates; empty until the geometry is loaded. */
+  parts: Position[][][];
 }
 
 type LatLng = { lat: number; lng: number };
@@ -52,13 +57,14 @@ function visualCenter(rings: Position[][], [w, s, e, n]: number[]): [number, num
   return score === -Infinity ? (centerOfMass(shape).geometry.coordinates as [number, number]) : center;
 }
 
+export const featureParts = ({ geometry: g }: DistrictFeature) => (g.type === "Polygon" ? [g.coordinates] : g.coordinates);
+
 /** Per district: the part with the most complexes + issues (else the largest) gives the label and the camera frame. */
 export function buildShapes(geo: DistrictGeo, complexes: LatLng[], issues: LatLng[]): Record<string, DistrictShape> {
   const points = [...complexes, ...issues].map((p) => [p.lng, p.lat]);
   const shapes: Record<string, DistrictShape> = {};
   for (const feature of geo.features) {
-    const g = feature.geometry;
-    const parts = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+    const parts = featureParts(feature);
     const ranked = parts
       .map((coords) => {
         const part = polygon(coords);
@@ -77,7 +83,7 @@ export function buildShapes(geo: DistrictGeo, complexes: LatLng[], issues: LatLn
   return shapes;
 }
 
-export const insideDistrict = (shape: DistrictShape, p: LatLng) => booleanPointInPolygon([p.lng, p.lat], shape.feature);
+export const insideDistrict = (shape: DistrictShape, p: LatLng) => !!shape.feature && booleanPointInPolygon([p.lng, p.lat], shape.feature);
 
 /** Greedy clustering in screen pixels: an item joins the first cluster whose seed is closer than `radius`. */
 export function clusterByDistance<T>(items: T[], screen: (item: T) => number[], radius: number): T[][] {

@@ -169,7 +169,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
       ],
     }));
     setSaved(issue);
-    toast.success("Проблема на карте. Ответственному она сама не уходит — отправьте обращение");
+    toast.success("Проблема на карте");
   }
 
   function restart() {
@@ -226,9 +226,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
               </span>
               <h2 className="text-lg font-semibold">Проблема на карте</h2>
               <p className="text-muted-foreground">«{saved.title}» сохранена и появилась в кабинете, в разделе «Обращения».</p>
-              <p className="text-sm">
-                Ответственному она сама не уходит: чтобы её решили, отправьте текст обращения через «Решаем вместе» или в управляющую компанию.
-              </p>
+              <p className="text-sm">Ответственному она сама не уходит — отправьте обращение.</p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild className="h-11 rounded-xl">
                   <Link href={issueHref(saved.id)} prefetch>
@@ -279,10 +277,7 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
                   </Button>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">Можно и без фото — тогда опишите проблему словами на следующем шаге.</p>
-              <p className="text-sm text-muted-foreground">
-                Фото и описание будут видны всем на карте. Не снимайте лица, номера машин и документы.
-              </p>
+              <p className="text-sm text-muted-foreground">Можно без фото. Фото увидят все: не снимайте лица, номера машин и документы.</p>
             </>
           ) : step === 1 ? (
             <>
@@ -386,9 +381,6 @@ export function ReportWizard({ house, authorities }: { house: House | null; auth
                         <ExternalLink /> Открыть Госуслуги «Решаем вместе»
                       </a>
                     </Button>
-                    <p className="text-sm text-muted-foreground sm:col-span-2">
-                      «Сохранить на карте» показывает проблему жителям. Ответственному обращение уходит, только когда вы его отправите.
-                    </p>
                     <Button className="h-11 rounded-xl sm:col-span-2" onClick={save} disabled={busy}>
                       {busy ? <Loader2 className="animate-spin" /> : <MapPin />} Сохранить на карте
                     </Button>

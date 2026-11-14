@@ -1,7 +1,7 @@
 "use client";
 
 // Panel of the map pages (§5.1): desktop — 384 px column (search width) over the map under the search;
-// phone — bottom sheet with 3 snap points (112 px, half, 64 px from the top), dragged by the handle.
+// phone — bottom sheet with 3 snap points (112 px, 224 px, 64 px from the top), dragged by the handle.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { useMap } from "@/components/map/MapContext";
@@ -9,6 +9,8 @@ import { MapControls } from "@/components/map/MapControls";
 
 const TAB_BAR = 56; // h-14 of TabBar (components/map/Rail.tsx)
 const COLLAPSED = 112;
+// Opened: the title and the first block (district figures, complex facts) over the map.
+const OPENED = 224;
 const TOP_GAP = 64;
 // Room for the search and chips over the phone map, so the camera keeps targets visible.
 const MOBILE_TOP = 120;
@@ -21,7 +23,7 @@ const subscribeResize = (cb: () => void) => {
 
 function snapsFor(height: number) {
   const max = height - TAB_BAR - TOP_GAP;
-  return [COLLAPSED, Math.round((height - TAB_BAR) / 2), max];
+  return [COLLAPSED, Math.min(OPENED, Math.round((height - TAB_BAR) / 2)), max];
 }
 
 export function PanelSheet({ mobile, children }: { mobile: boolean; children: React.ReactNode }) {
@@ -129,9 +131,9 @@ function BottomSheet({ children }: { children: React.ReactNode }) {
             snapTo((index + 1) % snaps.length);
           }
         }}
-        className="grid h-5 w-full shrink-0 cursor-grab touch-none place-items-center active:cursor-grabbing"
+        className="grid h-6 w-full shrink-0 cursor-grab touch-none place-items-center active:cursor-grabbing"
       >
-        <span className="h-1.5 w-10 rounded-full bg-foreground/20" />
+        <span className="h-1.5 w-12 rounded-full bg-foreground/25" />
       </button>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [&>div>div:first-child]:pt-1">{children}</div>
     </motion.section>

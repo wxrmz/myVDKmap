@@ -151,6 +151,9 @@ export interface IssueDTO {
   address?: string;
 }
 
+/** An issue as the map shows it: without the long texts that only its own page needs. */
+export type MapIssueDTO = Omit<IssueDTO, "description" | "appealText">;
+
 export interface AuthorityDTO {
   id: string;
   name: string;

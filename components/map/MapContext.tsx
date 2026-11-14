@@ -2,16 +2,16 @@
 
 // Map state shared by the map, the shell and the pages (§4): data, scene, layers, camera insets.
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import type { CityWorkDTO, DistrictWithCountsDTO, IssueDTO, MapComplexDTO } from "@/lib/types";
-import { buildShapes, type DistrictGeo, type DistrictShape } from "./shapes";
+import type { CityWorkDTO, DistrictWithCountsDTO, IssueDTO, MapComplexDTO, MapIssueDTO } from "@/lib/types";
+import { featureParts, type DistrictGeo, type DistrictPlace, type DistrictShape } from "./shapes";
 
 /** Server-fetched once by `app/(map)/layout.tsx`. `issues` are open ones only. */
 interface MapData {
   districts: DistrictWithCountsDTO[];
   complexes: MapComplexDTO[];
-  issues: IssueDTO[];
+  issues: MapIssueDTO[];
   works: CityWorkDTO[];
-  geo: DistrictGeo;
+  places: Record<string, DistrictPlace>;
 }
 
 export type MapLevel = "city" | "district" | "complex" | "house";
@@ -48,7 +48,7 @@ interface MapContextValue {
   complexes: MapComplexDTO[];
   works: CityWorkDTO[];
   /** Open issues; refetched from `/api/issues` on the window event `issues:changed`. */
-  issues: IssueDTO[];
+  issues: MapIssueDTO[];
   shapes: Record<string, DistrictShape>;
   scene: MapScene;
   setScene: (scene: MapScene) => void;
@@ -79,7 +79,7 @@ function defaultInsets(viewport: string): MapInsets {
     : { top: 0, right: 0, bottom: Math.round(h / 2), left: 0 };
 }
 
-const isOpen = (i: IssueDTO) => i.status !== "resolved";
+const isOpen = (i: MapIssueDTO) => i.status !== "resolved";
 
 export function MapProvider({ data, children }: { data: MapData; children: React.ReactNode }) {
   const [issues, setIssues] = useState(data.issues);
@@ -97,7 +97,24 @@ export function MapProvider({ data, children }: { data: MapData; children: React
     return () => window.removeEventListener("issues:changed", refetch);
   }, []);
 
-  const shapes = useMemo(() => buildShapes(data.geo, data.complexes, issues), [data.geo, data.complexes, issues]);
+  // The outlines come as a cached static file, not inside every page's HTML.
+  const [geo, setGeo] = useState<DistrictGeo | null>(null);
+  useEffect(() => {
+    fetch("/geo/districts.geojson")
+      .then((r) => (r.ok ? (r.json() as Promise<DistrictGeo>) : null))
+      .then(setGeo)
+      .catch(() => {});
+  }, []);
+  const shapes = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(data.places).map(([id, place]) => {
+          const feature = geo?.features.find((f) => f.properties.id === id);
+          return [id, { ...place, feature, parts: feature ? featureParts(feature) : [] }];
+        }),
+      ),
+    [data.places, geo],
+  );
   const insets = useMemo(() => ({ ...defaultInsets(viewport), ...override }), [viewport, override]);
 
   const value = useMemo<MapContextValue>(

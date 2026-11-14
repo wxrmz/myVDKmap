@@ -4,12 +4,14 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useMap, useMapScene } from "@/components/map/MapContext";
+import { useIdlePrefetch } from "@/components/map/useIdlePrefetch";
 import { plural } from "@/lib/health";
 import { districtHref } from "@/lib/nav";
 
 export function CityPanel() {
   useMapScene({ level: "city" });
   const { districts } = useMap();
+  useIdlePrefetch(districts.map((d) => districtHref(d.id)));
   return (
     <div className="flex flex-col gap-4 p-4 animate-in fade-in duration-300">
       <header>
@@ -21,7 +23,7 @@ export function CityPanel() {
           <li key={d.id}>
             <Link
               href={districtHref(d.id)}
-              prefetch
+              prefetch={false}
               className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-muted"
             >
               <span className="size-3 shrink-0 rounded-full ring-2 ring-card" style={{ background: d.color }} />

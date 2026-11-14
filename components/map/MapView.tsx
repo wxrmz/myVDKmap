@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 import { Building2, Construction } from "lucide-react";
 import type * as MapGL from "@2gis/mapgl/types";
 import { complexHref, districtHref, houseHref, issueHref, workHref } from "@/lib/nav";
-import type { CityWorkDTO, DistrictWithCountsDTO, IssueDTO, MapComplexDTO } from "@/lib/types";
+import type { CityWorkDTO, DistrictWithCountsDTO, MapComplexDTO, MapIssueDTO } from "@/lib/types";
 import { cn, vlDay } from "@/lib/utils";
 import type { ThemeSwitchDetail } from "@/components/ThemeToggle";
 import { useMap, type MapLayers, type MapLevel, type MapScene } from "./MapContext";
@@ -544,7 +544,7 @@ const Markers = memo(function Markers({
   api: Api;
   districts: DistrictWithCountsDTO[];
   complexes: MapComplexDTO[];
-  issues: IssueDTO[];
+  issues: MapIssueDTO[];
   works: CityWorkDTO[];
   shapes: Record<string, DistrictShape>;
   scene: MapScene;
@@ -561,7 +561,7 @@ const Markers = memo(function Markers({
     [issues, focusShape],
   );
 
-  const [clusters, setClusters] = useState<IssueDTO[][]>([]);
+  const [clusters, setClusters] = useState<MapIssueDTO[][]>([]);
   useEffect(() => {
     const update = () => setClusters(clusterByDistance(districtIssues, (i) => api.map.project([i.lng, i.lat]), CLUSTER_PX));
     update();

@@ -84,10 +84,7 @@ export function IssuePanel({
       {i.status !== "resolved" && (
         <section className="panel-box flex flex-col gap-2">
           <h2 className="font-semibold">Вас это тоже касается?</h2>
-          <p className="text-sm text-muted-foreground">
-            Нажмите, если сталкиваетесь с этой же проблемой здесь. Чем больше жителей отметились, тем выше она в списке района.
-            {i.supports > 0 && ` Уже отметились: ${i.supports}.`}
-          </p>
+          {i.supports > 0 && <p className="text-sm text-muted-foreground">Уже отметились: {i.supports}.</p>}
           <SupportButton issueId={i.id} supports={i.supports} />
         </section>
       )}

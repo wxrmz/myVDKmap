@@ -141,10 +141,6 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
         <Button variant="outline" className="h-11 self-start rounded-xl" disabled={busy || !text.trim()} onClick={() => analyze({ text })}>
           Разобрать текст
         </Button>
-        <p className="text-xs text-muted-foreground">
-          Квитанцию читает наш сервер по правилам, без сторонних сервисов, и не хранит её. В кабинет попадают только строки и суммы — если
-          вы нажмёте «Сохранить».
-        </p>
       </section>
 
       {busy && (

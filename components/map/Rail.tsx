@@ -9,6 +9,7 @@ import { focusSearchOnMount, SEARCH_INPUT_ID } from "@/components/search/SearchB
 import { cn } from "@/lib/utils";
 import { FavoritesPopover } from "./FavoritesPopover";
 import { LayersPopover } from "./LayersPopover";
+import { useIdlePrefetch } from "./useIdlePrefetch";
 
 const MAP = { href: "/", label: "Карта", Icon: MapIcon };
 const FLOWS = [
@@ -62,7 +63,7 @@ function RailLink({ href, label, Icon }: typeof MAP) {
   const active = isActive(href, usePathname());
   const onClick = useCrossFade(href);
   return (
-    <Link href={href} prefetch onClick={onClick} className={itemClass(active)} aria-current={active ? "page" : undefined}>
+    <Link href={href} prefetch={false} onClick={onClick} className={itemClass(active)} aria-current={active ? "page" : undefined}>
       <Icon className="size-6" />
       {label}
     </Link>
@@ -117,7 +118,7 @@ function TabLink({ href, label, Icon, active }: typeof MAP & { active: boolean }
   return (
     <Link
       href={href}
-      prefetch
+      prefetch={false}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
@@ -131,8 +132,12 @@ function TabLink({ href, label, Icon, active }: typeof MAP & { active: boolean }
   );
 }
 
+const SECTIONS = [MAP, ...FLOWS, CABINET].map((i) => i.href);
+
+/** Mounted at every width (hidden by CSS on desktop), so it also prefetches the sections for the desktop rail. */
 export function TabBar() {
   const pathname = usePathname();
+  useIdlePrefetch(SECTIONS);
   return (
     <nav
       aria-label="Разделы"
