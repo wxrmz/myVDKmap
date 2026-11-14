@@ -1,4 +1,5 @@
 // Rules (§6.1): keyword classification, the authority handbook, prepared fixtures and DB facts. Server only.
+import { billChecks, billInsights } from "@/lib/bills";
 import { prisma } from "@/lib/db";
 import { BILL_ITEM_GLOSSARY, DEMO_BILLS, DEMO_BUILDING_ID, TARIFFS, periodLabel } from "@/lib/fixtures/bills";
 import { DEMO_DOCUMENTS } from "@/lib/fixtures/documents";
@@ -204,7 +205,8 @@ const ACTIONS: [RegExp, string][] = [
   [/отоплен/, "Сравните сумму с соседями по дому. Если батареи грели плохо или отопление дали позже, попросите управляющую компанию сделать перерасчёт."],
   [/водоотвед|канализ/, "Канализация считается как горячая и холодная вода вместе: проверьте, что объём в квитанции равен сумме показаний ваших счётчиков."],
   [/вод/, "Сверьте показания счётчика с квитанцией и передавайте их вовремя — иначе начислят по среднему или по нормативу."],
-  [/одн|электр/, "Это общий расход дома. Если он растёт, спросите в управляющей компании показания общедомового счётчика."],
+  [/одн|общедом/, "Это общий расход дома. Если он растёт, спросите в управляющей компании показания общедомового счётчика."],
+  [/электр/, "Сверьте показания счётчика электроэнергии с квитанцией и передавайте их вовремя — иначе начислят по среднему или по нормативу."],
   [/тко|мусор/, "Начисляется по нормативу на жильца: проверьте, сколько человек указано в квитанции."],
 ];
 const actionFor = (name: string) =>
@@ -216,13 +218,21 @@ const money = (n: number) => n.toLocaleString("ru-RU", { minimumFractionDigits: 
  * Plain names, history of the house and «what changed and what to do» for recognised receipt lines.
  * The house history is made of combined housing receipts, so other kinds (capital repair, power) are not compared with it.
  */
-async function analyzeBill(raw: BillRaw, buildingId = DEMO_BUILDING_ID, kind: BillKind = "housing"): Promise<BillOutput> {
+async function analyzeBill(
+  raw: BillRaw,
+  buildingId = DEMO_BUILDING_ID,
+  kind: BillKind = "housing",
+  previous: BillInput["previous"] = [],
+): Promise<BillOutput> {
   const rows = kind === "housing" ? await prisma.bill.findMany({ where: { buildingId }, orderBy: { period: "asc" } }) : [];
-  const history: { period: string; items: BillItem[]; total: number }[] = rows.length
+  const house: { period: string; items: BillItem[]; total: number }[] = rows.length
     ? rows.map((b) => ({ period: b.period, items: JSON.parse(b.items) as BillItem[], total: b.total }))
     : kind === "housing" && buildingId === DEMO_BUILDING_ID
       ? DEMO_BILLS
       : [];
+  // The resident's own receipts win over the house history for the same month: they are this flat's numbers.
+  const own = new Map(previous.map((b) => [b.period, b]));
+  const history = [...house.filter((b) => !own.has(b.period)), ...own.values()].sort((a, b) => (a.period < b.period ? -1 : 1));
   const earlier = history.filter((b) => !raw.period || b.period < raw.period);
   const prev = earlier.at(-1);
   const same = (a: string, b: string) => norm(a) === norm(b);
@@ -247,29 +257,43 @@ async function analyzeBill(raw: BillRaw, buildingId = DEMO_BUILDING_ID, kind: Bi
     } else if (tariff && pct(tariff.new, tariff.old) >= 3) {
       changes.push({ item: item.name, deltaPercent: pct(tariff.new, tariff.old), likelyReason: `Индексация: ${tariffNote}.`, action: actionFor(item.name) });
     } else if (amountDelta !== null && amountDelta >= 3) {
-      const more = before?.volume !== undefined && item.volume !== undefined && item.volume > before.volume;
+      const volumes = before?.volume !== undefined && item.volume !== undefined;
       changes.push({
         item: item.name,
         deltaPercent: amountDelta,
-        likelyReason: more
-          ? `Расход вырос: ${[item.volume, item.unit].filter(Boolean).join(" ")} против ${before!.volume} в прошлом месяце.`
-          : "Сумма выросла при том же объёме — уточните причину в управляющей компании.",
+        likelyReason:
+          volumes && item.volume! > before!.volume!
+            ? `Расход вырос: ${[item.volume, item.unit].filter(Boolean).join(" ")} против ${before!.volume} в прошлом месяце.`
+            : volumes
+              ? "Сумма выросла при том же объёме — уточните причину в управляющей компании."
+              : `Сумма выросла: ${money(item.amount)} ₽ против ${money(before!.amount)} ₽ в прошлом месяце.`,
         action: actionFor(item.name),
+      });
+    } else if (amountDelta !== null && amountDelta <= -3) {
+      changes.push({
+        item: item.name,
+        deltaPercent: amountDelta,
+        likelyReason: `Сумма снизилась: ${money(item.amount)} ₽ против ${money(before!.amount)} ₽ в прошлом месяце.`,
+        action: "Ничего делать не нужно. Если снижение большое, а расход прежний, проверьте, не начислили ли по среднему вместо показаний.",
       });
     }
   }
 
   const totals = new Map(history.map((b) => [b.period, b.total]));
   if (raw.period) totals.set(raw.period, raw.total);
+  const items = raw.items.map((i) => {
+    const g = glossary(i.name);
+    return { ...i, plainName: g?.plainName ?? i.name, explanation: g?.explanation ?? "Этой строки нет в нашем справочнике: что именно в неё входит, подскажет управляющая компания." };
+  });
+  const byMonth = [...totals].sort(([a], [b]) => (a < b ? -1 : 1)).map(([period, total]) => ({ period, total }));
   return {
     ...(raw.period && { period: raw.period }),
-    items: raw.items.map((i) => {
-      const g = glossary(i.name);
-      return { ...i, plainName: g?.plainName ?? i.name, explanation: g?.explanation ?? "Этой строки нет в нашем справочнике: что именно в неё входит, подскажет управляющая компания." };
-    }),
+    items,
     total: raw.total,
-    history: [...totals].sort(([a], [b]) => (a < b ? -1 : 1)).map(([period, total]) => ({ period, total })),
+    history: byMonth,
     changes,
+    checks: billChecks(items, raw.total),
+    insights: billInsights(items, raw.total, byMonth, raw.period),
   };
 }
 
@@ -279,10 +303,10 @@ const latestDemoBill = (): BillRaw => {
 };
 
 /** Null when there is no text to read (a PDF without a text layer). */
-export async function parseBill({ buildingId, text, demo, kind = "housing" }: Partial<BillInput>): Promise<BillOutput | null> {
+export async function parseBill({ buildingId, text, demo, kind = "housing", previous }: Partial<BillInput>): Promise<BillOutput | null> {
   if (demo) return analyzeBill(latestDemoBill(), DEMO_BUILDING_ID);
   if (!text) return null;
-  return analyzeBill(parseBillText(text), buildingId ?? DEMO_BUILDING_ID, kind);
+  return analyzeBill(parseBillText(text), buildingId ?? DEMO_BUILDING_ID, kind, previous);
 }
 
 // ---------------------------------------------------------------- summarizeDocument

@@ -10,11 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCabinet } from "@/components/cabinet/shared";
 import { monthLabel, rub } from "@/lib/utils";
 import type { BillOutput } from "@/lib/ai/schemas";
+import { isPart } from "@/lib/bills";
 import { updateCabinet } from "@/lib/cabinet";
 import { houseHref } from "@/lib/nav";
 import { BILL_KIND_LABELS, BILL_KINDS, type BillKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { api, readAsDataUrl } from "./api";
+import { CheckList, Insights, Share } from "./BillParts";
 import { FlowHeader } from "./FlowHeader";
 
 const BillChart = dynamic(() => import("./BillChart"), { ssr: false });
@@ -33,12 +35,19 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
   const fileRef = useRef<HTMLInputElement>(null);
   const text = texts[kind] ?? "";
   const bill = bills[kind] ?? null;
-  const saved = useCabinet().bills.some((b) => bill && b.id === billId(kind, bill));
+  const cabinet = useCabinet().bills;
+  const analysed = BILL_KINDS.flatMap((k) => (bills[k] ? [[k, bills[k]] as const] : []));
+  const unsaved = analysed.filter(([k, b]) => !cabinet.some((c) => c.id === billId(k, b)));
+  const saved = !!bill && !unsaved.some(([k]) => k === kind);
 
   async function analyze(input: { demo?: true; text?: string; pdf?: string }) {
     const k = kind;
     setBusy(true);
-    const res = await api<BillOutput>("/api/ai/bill", { body: { ...input, kind: k, buildingId: house?.id } });
+    // The resident's own saved receipts of this kind: the analysis compares with them.
+    const previous = cabinet
+      .filter((b) => (b.kind ?? "housing") === k && b.period)
+      .map(({ period, total, items }) => ({ period: period!, total, items: items.map(({ name, amount, unit, volume, tariff }) => ({ name, amount, unit, volume, tariff })) }));
+    const res = await api<BillOutput>("/api/ai/bill", { body: { ...input, kind: k, buildingId: house?.id, previous } });
     if (res) setBills((b) => ({ ...b, [k]: res }));
     setBusy(false);
   }
@@ -50,19 +59,21 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
     await analyze({ pdf: await readAsDataUrl(file) });
   }
 
+  /** Every analysed receipt not yet in the cabinet, from all tabs at once. */
   function save() {
-    if (!bill) return;
-    const entry = {
-      id: billId(kind, bill),
-      kind,
-      period: bill.period,
-      total: bill.total,
+    const savedAt = new Date().toISOString();
+    const entries = unsaved.map(([k, b]) => ({
+      id: billId(k, b),
+      kind: k,
+      period: b.period,
+      total: b.total,
       buildingId: house?.id,
-      items: bill.items.map(({ name, plainName, amount }) => ({ name, plainName, amount })),
-      savedAt: new Date().toISOString(),
-    };
-    updateCabinet((c) => ({ ...c, bills: [...c.bills.filter((b) => b.id !== entry.id), entry] }));
-    toast.success("Квитанция сохранена в кабинете");
+      items: b.items.map(({ name, plainName, amount, explanation, unit, volume, tariff }) => ({ name, plainName, amount, explanation, unit, volume, tariff })),
+      savedAt,
+    }));
+    const ids = new Set(entries.map((e) => e.id));
+    updateCabinet((c) => ({ ...c, bills: [...c.bills.filter((b) => !ids.has(b.id)), ...entries] }));
+    toast.success(entries.length > 1 ? `Квитанции сохранены в кабинете: ${entries.length}` : "Квитанция сохранена в кабинете");
   }
 
   const chart = bill?.history.map((h) => ({ month: monthLabel(h.period).split(" ")[0].slice(0, 3), label: monthLabel(h.period), total: h.total }));
@@ -148,6 +159,7 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
               </h2>
               <span className="text-lg font-semibold tabular-nums">{rub(bill.total)}</span>
             </div>
+            <Insights items={bill.insights} />
             <ul className="flex flex-col divide-y divide-border">
               {/* Index keys: a receipt can list the same service twice, and a repeated key left rows behind between tabs. */}
               {bill.items.map((i, n) => (
@@ -156,11 +168,17 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
                     <span className="font-medium">{i.plainName}</span>
                     <span className="text-sm text-muted-foreground">{i.explanation}</span>
                     {i.plainName !== i.name && <span className="text-xs text-muted-foreground">В квитанции: {i.name}</span>}
+                    {!isPart(i) && bill.total > 0 && <Share part={i.amount} of={bill.total} />}
                   </div>
                   <span className="shrink-0 font-medium tabular-nums">{rub(i.amount)}</span>
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section className="panel-box flex flex-col gap-2">
+            <h2 className="text-lg font-semibold">Проверка квитанции</h2>
+            <CheckList checks={bill.checks} />
           </section>
 
           {chart && chart.length > 1 && (
@@ -197,11 +215,19 @@ export function BillAnalyzer({ house }: { house: { id: string; address: string }
             )}
           </section>
 
-          <Button variant={saved ? "outline" : "default"} className="h-11 self-start rounded-xl" onClick={save} disabled={saved}>
-            <Save /> {saved ? "Сохранено в кабинете" : "Сохранить в кабинет"}
+          <Button variant={unsaved.length ? "default" : "outline"} className="h-11 self-start rounded-xl" onClick={save} disabled={!unsaved.length}>
+            <Save />{" "}
+            {!unsaved.length
+              ? "Сохранено в кабинете"
+              : unsaved.length > 1
+                ? `Сохранить в кабинет все разобранные (${unsaved.length})`
+                : saved
+                  ? `Сохранить в кабинет: ${BILL_KIND_LABELS[unsaved[0][0]].toLowerCase()}`
+                  : "Сохранить в кабинет"}
           </Button>
         </div>
       )}
     </div>
   );
 }
+

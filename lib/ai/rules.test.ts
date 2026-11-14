@@ -61,6 +61,17 @@ async function main() {
   assert.match(delta("отоплен")?.likelyReason ?? "", /с октября/);
   assert.ok(demo.items.every((i) => i.plainName && i.explanation));
   assert.ok(demo.history.length >= 3 && demo.history.at(-1)!.period === demo.period);
+  assert.ok(demo.checks.length >= 3 && demo.checks.every((c) => c.ok), JSON.stringify(demo.checks));
+  assert.ok(demo.insights.length === 3, demo.insights.join("\n"));
+  // A power receipt has no house history: it is compared with the resident's own saved receipts.
+  const power = (await parseBill({
+    kind: "power",
+    text: "Период: ноябрь 2026\nЭлектроэнергия … 1 034,00\nИтого: 1 034,00",
+    previous: [{ period: "2026-10", total: 940, items: [{ name: "Электроэнергия", amount: 940 }] }],
+  }))!;
+  assert.deepEqual(power.history.map((h) => h.period), ["2026-10", "2026-11"]);
+  assert.deepEqual(power.changes.map((c) => [c.item, c.deltaPercent]), [["Электроэнергия", 10]]);
+  assert.match(power.insights[1], /\+94,00 ₽ \(\+10 %\)/);
 
   const fromText = (await parseBill({ text: DEMO_BILL_TEXTS["2026-11"] }))!;
   assert.equal(fromText.period, "2026-11");

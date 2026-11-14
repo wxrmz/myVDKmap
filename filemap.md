@@ -50,15 +50,16 @@
 - `components/flows/api.ts` — `api()` typed JSON fetch (errors → Russian toast + `null`), `readAsDataUrl`, `readPhoto` (shrinks a photo to a ≤1600 px JPEG before upload)
 - `components/flows/FlowHeader.tsx` — flow page title row with a close link
 - `components/flows/ReportWizard.tsx` — §5.5 wizard (photo, kind + description, address: «этот дом» / search / map point — never preset, AI result, save → `issues:changed` + cabinet); draft in the cabinet
+- `components/flows/BillParts.tsx` — `Share` (a line's share bar), `Insights`, `CheckList`: shared by the analysis and the cabinet
 - `components/flows/BillChart.tsx` — recharts bar chart of monthly totals, its own chunk
-- `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis, one tab per receipt kind (коммуналка / капремонт / электроэнергия / другая; demo only for коммуналка), lines, monthly chart (`BillChart.tsx`, loaded lazily), changes, save to cabinet
+- `components/flows/BillAnalyzer.tsx` — §5.6 receipt analysis, one tab per receipt kind (коммуналка / капремонт / электроэнергия / другая; demo only for коммуналка), compared with the resident's own saved receipts; numbers, lines with shares, checks, monthly chart (`BillChart.tsx`, loaded lazily), changes, one button saves every analysed tab to the cabinet
 - `components/flows/WorksFeed.tsx` — §5.7 feed: groups, `isDone`, `?building=` first, `?work=` highlight/scroll/open group
 - `components/flows/WorksSearch.tsx` — street field, street chips, «Найдено работ: N»
 - `components/flows/DocumentParser.tsx` — «Разобрать свой документ» via `/api/ai/document`
 - `components/cabinet/CabinetPage.tsx` — /me: login or profile + sections (right sticky list `layoutId="cabinet-tab"`, chips on phones)
 - `components/cabinet/Auth.tsx` — «Вход в кабинет»: demo Госуслуги, login / registration
 - `components/cabinet/HousesIssues.tsx` — «Мои дома» (summaries, subscriptions, works near), «Обращения» (draft, my issues)
-- `components/cabinet/BillsMeters.tsx` — «Квитанции» (saved, neighbours, capital repair), «Счётчики»
+- `components/cabinet/BillsMeters.tsx` — «Квитанции» (saved receipts open into lines with share and change, checks, numbers; neighbours, capital repair), «Счётчики»
 - `components/cabinet/CommunitySettings.tsx` — «Соседи» (board, poll), «Настройки» (font size, notifications, profile, Госуслуги, password, delete account)
 - `components/cabinet/shared.tsx` — `useCabinet`, `useFontScale`, `useHouseSummaries`, `CabinetSection`, `Empty`
 - `components/ui/` — shadcn (radix-ui) with §7 tweaks: accordion, badge, button, dialog, input, popover, skeleton, sonner, textarea
@@ -68,12 +69,13 @@
 - `lib/search.ts` — addresses (server): cached OSM address index, `searchAll` (§6.2), `districtAt`, `ensureOsmBuilding` (§6.3), `houseAt` + `streetKey`/`houseNumberKey` (house under a click: same street and number within 80 m), `houseFromGis` (else a `gis-…` passport from the 2GIS address), `streetPattern`, `getWorkStreets` (§6.4)
 - `lib/queries.ts` — DB queries → DTOs: `getDistricts`, `getDistrict`, `getComplex`, `getMapComplexes`, `getBuilding` (passport, lazy `osm-…`, works within 600 m, health), `getIssues`, `getCityWorks`, `getAuthorities`, `getDistrictStats`, `toIssueDTO`
 - `lib/nav.ts` — hrefs (`districtHref`, `complexHref`, `houseHref`, `issueHref`, `workHref`), `complexLabel`, `breadcrumbs`
+- `lib/bills.ts` — receipt analytics for the analysis and the cabinet: `billChecks` (lines add up, volume × tariff, sewerage = hot + cold, repeats), `lineDeltas`, `billInsights`
 - `lib/health.ts` — `computeHealth` (§6.5), `plural` (Russian plurals)
 - `lib/votes.ts` — `tally`: closed when ≥ 3 «уже решено» (the author counts as 3) outnumber «ещё есть»
 - `lib/auth.ts` — server auth §5.8: scrypt hash/verify, sessions (`vdk_session`, SHA-256 in DB), rate limit, zod schemas, `publicUser`
 - `lib/session.ts` — client session store (`useSession`, `setSessionUser`, `clearSession`); starts/stops cabinet sync
 - `lib/cabinet.ts` — cabinet data §5.8: `CabinetSchema`, `mergeCabinets`, localStorage store (`updateCabinet`, `getCabinet`), server sync, `toggleSavedHouse`, `markSupported`; event `cabinet:changed`
-- `lib/streets.test.ts`, `lib/houses.test.ts`, `lib/health.test.ts`, `lib/auth.test.ts`, `lib/cabinet.test.ts`, `lib/votes.test.ts` — self-checks (`npx tsx <file>`)
+- `lib/streets.test.ts`, `lib/houses.test.ts`, `lib/health.test.ts`, `lib/auth.test.ts`, `lib/cabinet.test.ts`, `lib/votes.test.ts`, `lib/bills.test.ts` — self-checks (`npx tsx <file>`)
 - `lib/ai/http.ts` — `apiError`, `parseBody` (8 MB limit, JSON, zod with Russian messages), `serverError`
 - `app/api/search/route.ts` — `GET /api/search?q=`
 - `app/api/buildings/at/route.ts` — `GET /api/buildings/at?gisId&lat&lng&street&number` → `{ id }` of the passport (ours, OSM or new `gis-…`), 404 outside the districts

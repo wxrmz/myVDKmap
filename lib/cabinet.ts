@@ -27,7 +27,19 @@ const BillEntry = z.object({
   period: z.string().max(7).optional(),
   total: z.number(),
   buildingId: id.optional(),
-  items: z.array(z.object({ name: z.string().max(300), plainName: z.string().max(300), amount: z.number() })).max(100),
+  items: z
+    .array(
+      z.object({
+        name: z.string().max(300),
+        plainName: z.string().max(300),
+        amount: z.number(),
+        explanation: z.string().max(1000).optional(),
+        unit: z.string().max(20).optional(),
+        volume: z.number().optional(),
+        tariff: z.number().optional(),
+      }),
+    )
+    .max(100),
   savedAt: iso,
 });
 const MeterEntry = z.object({ id, kind: z.enum(METER_KINDS), value: z.number().nonnegative(), date: iso });

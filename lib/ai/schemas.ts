@@ -32,17 +32,6 @@ export const ClassifyOutputSchema = z.object({
 export type ClassifyOutput = z.infer<typeof ClassifyOutputSchema>;
 
 // --- parseBill ---
-export const BillInputSchema = z
-  .object({
-    buildingId: z.string().min(1).optional(),
-    kind: z.enum(BILL_KINDS, { error: "Выберите, какая это квитанция" }).default("housing"),
-    pdf: z.string().regex(BILL_PDF, "Загрузите квитанцию в PDF").optional(),
-    text: z.string().trim().max(20000, "Текст длиннее 20 000 символов").optional(),
-    demo: z.boolean().optional(),
-  })
-  .refine((b) => b.demo || b.pdf || b.text, { message: "Загрузите PDF квитанции, вставьте её текст или выберите пример", path: ["text"] });
-export type BillInput = z.infer<typeof BillInputSchema>;
-
 const PERIOD = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 const BillItemSchema = z.object({
   name: z.string().trim().min(1),
@@ -51,6 +40,19 @@ const BillItemSchema = z.object({
   volume: z.number().optional(),
   tariff: z.number().optional(),
 });
+
+export const BillInputSchema = z
+  .object({
+    buildingId: z.string().min(1).optional(),
+    kind: z.enum(BILL_KINDS, { error: "Выберите, какая это квитанция" }).default("housing"),
+    pdf: z.string().regex(BILL_PDF, "Загрузите квитанцию в PDF").optional(),
+    text: z.string().trim().max(20000, "Текст длиннее 20 000 символов").optional(),
+    demo: z.boolean().optional(),
+    /** The resident's own saved receipts of this kind (cabinet): the analysis compares with them first. */
+    previous: z.array(z.object({ period: PERIOD, total: z.number(), items: z.array(BillItemSchema).max(100) })).max(60).optional(),
+  })
+  .refine((b) => b.demo || b.pdf || b.text, { message: "Загрузите PDF квитанции, вставьте её текст или выберите пример", path: ["text"] });
+export type BillInput = z.infer<typeof BillInputSchema>;
 
 /** What reading a receipt gives: its lines as printed. */
 export type BillRaw = { period?: string; items: z.infer<typeof BillItemSchema>[]; total: number };
@@ -61,6 +63,10 @@ export const BillOutputSchema = z.object({
   total: z.number(),
   history: z.array(z.object({ period: PERIOD, total: z.number() })),
   changes: z.array(z.object({ item: z.string(), deltaPercent: z.number(), likelyReason: z.string(), action: z.string() })),
+  /** Arithmetic checks of the receipt itself (lib/bills.ts). */
+  checks: z.array(z.object({ ok: z.boolean(), text: z.string() })),
+  /** Sentences with numbers: the biggest line, change to last month, the average. */
+  insights: z.array(z.string()),
 });
 export type BillOutput = z.infer<typeof BillOutputSchema>;
 

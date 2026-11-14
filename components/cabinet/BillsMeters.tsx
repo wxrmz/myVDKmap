@@ -3,11 +3,13 @@
 // Cabinet sections «Квитанции» (saved bills, neighbours, capital repair) and «Счётчики» (§5.8).
 import { useState } from "react";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DEFAULT_SETTINGS, METER_KINDS, updateCabinet, type MeterKind } from "@/lib/cabinet";
+import { CheckList, Insights, Share } from "@/components/flows/BillParts";
+import { billChecks, billInsights, isPart, lineDeltas } from "@/lib/bills";
+import { DEFAULT_SETTINGS, METER_KINDS, updateCabinet, type Cabinet, type MeterKind } from "@/lib/cabinet";
 import { BILL_KIND_LABELS, BILL_KINDS } from "@/lib/types";
 import { cn, norm } from "@/lib/utils";
 import { dayLabel, monthLabel, rub } from "@/lib/utils";
@@ -17,6 +19,7 @@ const isCapRepair = (name: string) => /капремонт|капитальн/.te
 
 export function BillsSection() {
   const { bills, houses } = useCabinet();
+  const [open, setOpen] = useState<string | null>(null);
   const sorted = [...bills].sort((a, b) => (b.period ?? "").localeCompare(a.period ?? ""));
   const groups = BILL_KINDS.map((k) => ({ kind: k, bills: sorted.filter((b) => (b.kind ?? "housing") === k) })).filter((g) => g.bills.length);
   // Neighbours' bills in the DB are combined housing receipts: compare only with those.
@@ -35,10 +38,19 @@ export function BillsSection() {
             <div key={g.kind} className="flex flex-col">
               <h3 className="pt-1 text-sm font-medium text-muted-foreground">{BILL_KIND_LABELS[g.kind]}</h3>
               <ul className="flex flex-col divide-y divide-border">
-                {g.bills.map((b) => (
-                  <li key={b.id} className="flex items-center gap-3 py-2.5">
-                    <span className="flex-1 font-medium">{b.period ? monthLabel(b.period) : "Без периода"}</span>
-                    <span className="font-medium tabular-nums">{rub(b.total)}</span>
+                {g.bills.map((b, n) => (
+                  <li key={b.id} className="flex flex-col">
+                    <div className="flex items-center gap-3 py-2.5">
+                    <button
+                      type="button"
+                      aria-expanded={open === b.id}
+                      onClick={() => setOpen(open === b.id ? null : b.id)}
+                      className="flex flex-1 items-center gap-3 text-left"
+                    >
+                      <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open === b.id && "rotate-180")} />
+                      <span className="flex-1 font-medium">{b.period ? monthLabel(b.period) : "Без периода"}</span>
+                      <span className="font-medium tabular-nums">{rub(b.total)}</span>
+                    </button>
                     <Button
                       variant="outline"
                       size="icon-sm"
@@ -48,6 +60,8 @@ export function BillsSection() {
                     >
                       <Trash2 />
                     </Button>
+                    </div>
+                    {open === b.id && <BillDetail bill={b} earlier={g.bills.slice(n + 1)} />}
                   </li>
                 ))}
               </ul>
@@ -101,6 +115,43 @@ export function BillsSection() {
         </CabinetSection>
       )}
     </>
+  );
+}
+
+type SavedBill = Cabinet["bills"][number];
+
+/** A saved receipt opened in the cabinet: the lines with their share and change, checks, numbers against earlier ones. */
+function BillDetail({ bill, earlier }: { bill: SavedBill; earlier: SavedBill[] }) {
+  const prev = earlier.find((b) => b.period && bill.period && b.period < bill.period);
+  const history = [...earlier, bill].filter((b) => b.period).map((b) => ({ period: b.period!, total: b.total })).sort((a, b) => (a.period < b.period ? -1 : 1));
+  const insights = billInsights(bill.items, bill.total, history, bill.period);
+  const checks = billChecks(bill.items, bill.total);
+  return (
+    <div className="flex flex-col gap-3 pb-3 pl-7 animate-in fade-in duration-200">
+      <Insights items={insights} />
+      <ul className="flex flex-col divide-y divide-border">
+        {lineDeltas(bill.items, prev?.items).map((i, n) => (
+          <li key={n} className="flex gap-3 py-2">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-sm font-medium">{i.plainName}</span>
+              {i.explanation && <span className="text-xs text-muted-foreground">{i.explanation}</span>}
+              {i.plainName !== i.name && <span className="text-xs text-muted-foreground">В квитанции: {i.name}</span>}
+              {!isPart(i) && bill.total > 0 && <Share part={i.amount} of={bill.total} />}
+            </div>
+            <span className="flex shrink-0 flex-col items-end text-sm">
+              <span className="font-medium tabular-nums">{rub(i.amount)}</span>
+              {i.delta !== undefined && i.delta !== 0 && (
+                <span className={cn("text-xs tabular-nums", i.delta > 0 ? "text-coral" : "text-turquoise")}>
+                  {i.delta > 0 ? "+" : "−"}
+                  {Math.abs(i.delta)} % к прошлой
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <CheckList checks={checks} />
+    </div>
   );
 }
 
